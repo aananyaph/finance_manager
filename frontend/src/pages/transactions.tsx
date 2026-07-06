@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import Sidebar from "../components/Sidebar";
-import StatCard from "../components/StatCard";
-import FinanceChart from "../components/FinanceChart";
 
 type Transaction = {
   _id: string;
@@ -14,33 +12,27 @@ type Transaction = {
   date: string;
 };
 
-type DashboardProps = {
+type TransactionsProps = {
   onLogout: () => void;
   activePage: string;
   setActivePage: (page: string) => void;
 };
 
-function Dashboard({
+function Transactions({
   onLogout,
   activePage,
   setActivePage,
-}: DashboardProps) {
+}: TransactionsProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+
   const [type, setType] = useState<"income" | "expense">("expense");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("UPI");
-  const [message, setMessage] = useState("");
 
-  // Stores the ID of the transaction currently being edited
   const [editingId, setEditingId] = useState<string | null>(null);
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    onLogout();
-  };
+  const [message, setMessage] = useState("");
 
   const fetchTransactions = async () => {
     try {
@@ -56,7 +48,15 @@ function Dashboard({
     fetchTransactions();
   }, []);
 
-  // Add or update transaction
+  const resetForm = () => {
+    setEditingId(null);
+    setType("expense");
+    setAmount("");
+    setCategory("");
+    setDescription("");
+    setPaymentMethod("UPI");
+  };
+
   const handleSubmit = async (
     e: React.FormEvent<HTMLFormElement>
   ) => {
@@ -97,7 +97,6 @@ function Dashboard({
     }
   };
 
-  // Load selected transaction into the form
   const handleEdit = (transaction: Transaction) => {
     setEditingId(transaction._id);
     setType(transaction.type);
@@ -105,44 +104,25 @@ function Dashboard({
     setCategory(transaction.category);
     setDescription(transaction.description || "");
     setPaymentMethod(transaction.paymentMethod);
+
     setMessage("Editing transaction...");
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
   };
 
-  // Reset form
-  const resetForm = () => {
-    setEditingId(null);
-    setType("expense");
-    setAmount("");
-    setCategory("");
-    setDescription("");
-    setPaymentMethod("UPI");
-  };
-
-  // Cancel editing
   const handleCancelEdit = () => {
     resetForm();
     setMessage("Edit cancelled");
   };
 
-  // Delete transaction
   const handleDelete = async (id: string) => {
     const confirmed = window.confirm(
       "Are you sure you want to delete this transaction?"
     );
 
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     try {
       await api.delete(`/api/transactions/${id}`);
 
-      // If the deleted transaction was being edited, reset the form
       if (editingId === id) {
         resetForm();
       }
@@ -155,15 +135,11 @@ function Dashboard({
     }
   };
 
-  const totalIncome = transactions
-    .filter((item) => item.type === "income")
-    .reduce((total, item) => total + item.amount, 0);
-
-  const totalExpense = transactions
-    .filter((item) => item.type === "expense")
-    .reduce((total, item) => total + item.amount, 0);
-
-  const balance = totalIncome - totalExpense;
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    onLogout();
+  };
 
   return (
     <div
@@ -184,7 +160,6 @@ function Dashboard({
           padding: "32px",
         }}
       >
-        {/* Header */}
         <div
           style={{
             display: "flex",
@@ -194,83 +169,30 @@ function Dashboard({
           }}
         >
           <div>
-            <h1 style={{ margin: 0 }}>Dashboard</h1>
+            <h1 style={{ margin: 0 }}>Transactions</h1>
 
             <p style={{ color: "#6b7280" }}>
-              Welcome back! Here's your financial overview.
+              Add, edit, and manage your income and expenses.
             </p>
           </div>
 
           <button
             onClick={handleLogout}
-            style={{
-              padding: "10px 20px",
-              background: "#dc2626",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontWeight: "bold",
-            }}
+            style={logoutButtonStyle}
           >
             Logout
           </button>
         </div>
 
-        {/* Statistics Cards */}
-        <div
-          style={{
-            display: "flex",
-            gap: "20px",
-            flexWrap: "wrap",
-            marginBottom: "32px",
-          }}
-        >
-          <StatCard
-            title="Current Balance"
-            value={balance}
-            icon="💳"
-          />
-
-          <StatCard
-            title="Total Income"
-            value={totalIncome}
-            icon="📈"
-          />
-
-          <StatCard
-            title="Total Expenses"
-            value={totalExpense}
-            icon="📉"
-          />
-        </div>
-
-        {/* Finance Chart */}
-        <div style={{ marginBottom: "32px" }}>
-          <FinanceChart
-            income={totalIncome}
-            expense={totalExpense}
-          />
-        </div>
-
-        {/* Main Content */}
         <div
           style={{
             display: "grid",
             gridTemplateColumns:
-              "minmax(300px, 1fr) minmax(400px, 2fr)",
+              "minmax(300px, 1fr) minmax(500px, 2fr)",
             gap: "24px",
           }}
         >
-          {/* Add / Edit Transaction */}
-          <section
-            style={{
-              background: "white",
-              padding: "24px",
-              borderRadius: "14px",
-              boxShadow: "0 4px 15px rgba(0,0,0,0.06)",
-            }}
-          >
+          <section style={cardStyle}>
             <h2>
               {editingId
                 ? "Edit Transaction"
@@ -346,16 +268,10 @@ function Dashboard({
               <button
                 type="submit"
                 style={{
-                  width: "100%",
-                  padding: "12px",
+                  ...mainButtonStyle,
                   background: editingId
                     ? "#2563eb"
-                    : "#080a0e",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
+                    : "#111827",
                 }}
               >
                 {editingId
@@ -367,17 +283,7 @@ function Dashboard({
                 <button
                   type="button"
                   onClick={handleCancelEdit}
-                  style={{
-                    width: "100%",
-                    padding: "12px",
-                    marginTop: "10px",
-                    background: "#e5e7eb",
-                    color: "#111827",
-                    border: "none",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    fontWeight: "bold",
-                  }}
+                  style={cancelButtonStyle}
                 >
                   Cancel Edit
                 </button>
@@ -391,16 +297,8 @@ function Dashboard({
             )}
           </section>
 
-          {/* Recent Transactions */}
-          <section
-            style={{
-              background: "white",
-              padding: "24px",
-              borderRadius: "14px",
-              boxShadow: "0 4px 15px rgba(0,0,0,0.06)",
-            }}
-          >
-            <h2>Recent Transactions</h2>
+          <section style={cardStyle}>
+            <h2>All Transactions</h2>
 
             {transactions.length === 0 ? (
               <p>No transactions yet.</p>
@@ -418,9 +316,7 @@ function Dashboard({
                   }}
                 >
                   <div>
-                    <strong>
-                      {transaction.category}
-                    </strong>
+                    <strong>{transaction.category}</strong>
 
                     <p
                       style={{
@@ -446,7 +342,6 @@ function Dashboard({
                   >
                     <strong
                       style={{
-                        marginRight: "6px",
                         color:
                           transaction.type === "income"
                             ? "#16a34a"
@@ -464,18 +359,8 @@ function Dashboard({
 
                     <button
                       type="button"
-                      onClick={() =>
-                        handleEdit(transaction)
-                      }
-                      style={{
-                        padding: "7px 12px",
-                        background: "#dbeafe",
-                        color: "#2563eb",
-                        border: "none",
-                        borderRadius: "7px",
-                        cursor: "pointer",
-                        fontWeight: "bold",
-                      }}
+                      onClick={() => handleEdit(transaction)}
+                      style={editButtonStyle}
                     >
                       Edit
                     </button>
@@ -485,15 +370,7 @@ function Dashboard({
                       onClick={() =>
                         handleDelete(transaction._id)
                       }
-                      style={{
-                        padding: "7px 12px",
-                        background: "#fee2e2",
-                        color: "#dc2626",
-                        border: "none",
-                        borderRadius: "7px",
-                        cursor: "pointer",
-                        fontWeight: "bold",
-                      }}
+                      style={deleteButtonStyle}
                     >
                       Delete
                     </button>
@@ -508,6 +385,13 @@ function Dashboard({
   );
 }
 
+const cardStyle = {
+  background: "white",
+  padding: "24px",
+  borderRadius: "14px",
+  boxShadow: "0 4px 15px rgba(0,0,0,0.06)",
+};
+
 const inputStyle = {
   width: "100%",
   padding: "11px",
@@ -518,4 +402,56 @@ const inputStyle = {
   boxSizing: "border-box" as const,
 };
 
-export default Dashboard;
+const mainButtonStyle = {
+  width: "100%",
+  padding: "12px",
+  color: "white",
+  border: "none",
+  borderRadius: "8px",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+const cancelButtonStyle = {
+  width: "100%",
+  padding: "12px",
+  marginTop: "10px",
+  background: "#e5e7eb",
+  color: "#111827",
+  border: "none",
+  borderRadius: "8px",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+const editButtonStyle = {
+  padding: "7px 12px",
+  background: "#dbeafe",
+  color: "#2563eb",
+  border: "none",
+  borderRadius: "7px",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+const deleteButtonStyle = {
+  padding: "7px 12px",
+  background: "#fee2e2",
+  color: "#dc2626",
+  border: "none",
+  borderRadius: "7px",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+const logoutButtonStyle = {
+  padding: "10px 20px",
+  background: "#dc2626",
+  color: "white",
+  border: "none",
+  borderRadius: "8px",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+export default Transactions;
