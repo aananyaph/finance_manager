@@ -3,6 +3,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
 import Budgets from "./pages/Budgets";
+import Investments from "./pages/Investments";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(
@@ -33,6 +34,16 @@ function App() {
       />
     );
   }
+
+  if (activePage === "Investments") {
+  return (
+    <Investments
+      onLogout={handleLogout}
+      activePage={activePage}
+      setActivePage={setActivePage}
+    />
+  );
+}
 
   if (activePage === "Budgets") {
     return (
