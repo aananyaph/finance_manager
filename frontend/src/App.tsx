@@ -4,6 +4,7 @@ import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
 import Budgets from "./pages/Budgets";
 import Investments from "./pages/Investments";
+import Reports from "./pages/Reports";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(
@@ -34,6 +35,16 @@ function App() {
       />
     );
   }
+
+  if (activePage === "Reports") {
+  return (
+    <Reports
+      onLogout={handleLogout}
+      activePage={activePage}
+      setActivePage={setActivePage}
+    />
+  );
+}
 
   if (activePage === "Investments") {
   return (
