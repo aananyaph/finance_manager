@@ -9,6 +9,7 @@ function Sidebar({ activePage, setActivePage }: SidebarProps) {
     "Transactions",
     "Budgets",
     "Investments",
+    "Goals",
     "Reports",
     "AI Advisor",
   ];

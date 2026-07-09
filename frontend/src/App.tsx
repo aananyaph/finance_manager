@@ -5,6 +5,7 @@ import Transactions from "./pages/Transactions";
 import Budgets from "./pages/Budgets";
 import Investments from "./pages/Investments";
 import Reports from "./pages/Reports";
+import Goals from "./pages/Goals";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(
@@ -35,6 +36,16 @@ function App() {
       />
     );
   }
+
+  if (activePage === "Goals") {
+  return (
+    <Goals
+      onLogout={handleLogout}
+      activePage={activePage}
+      setActivePage={setActivePage}
+    />
+  );
+}
 
   if (activePage === "Reports") {
   return (
