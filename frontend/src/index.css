@@ -1,4 +1,4 @@
-* {
+/* * {
   box-sizing: border-box;
 }
 
@@ -22,4 +22,25 @@ button,
 input,
 select {
   font: inherit;
+} */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+@media (max-width: 650px) {
+  #root > div {
+    flex-direction: column;
+  }
 }

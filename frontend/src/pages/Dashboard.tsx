@@ -1,8 +1,26 @@
 import { useEffect, useState } from "react";
+import {
+  ArrowRight,
+  CreditCard,
+  Pencil,
+  Plus,
+  ReceiptText,
+  Trash2,
+} from "lucide-react";
+
 import api from "../services/api";
 import Sidebar from "../components/Sidebar";
 import StatCard from "../components/StatCard";
 import FinanceChart from "../components/FinanceChart";
+
+import {
+  buttonStyles,
+  cardStyles,
+  inputStyles,
+  layoutStyles,
+  textStyles,
+  theme,
+} from "../styles/theme";
 
 type Transaction = {
   _id: string;
@@ -25,16 +43,23 @@ function Dashboard({
   activePage,
   setActivePage,
 }: DashboardProps) {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [type, setType] = useState<"income" | "expense">("expense");
+  const [transactions, setTransactions] = useState<Transaction[]>(
+    []
+  );
+
+  const [type, setType] = useState<"income" | "expense">(
+    "expense"
+  );
+
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("UPI");
   const [message, setMessage] = useState("");
 
-  // Stores the ID of the transaction currently being edited
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(
+    null
+  );
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -56,7 +81,15 @@ function Dashboard({
     fetchTransactions();
   }, []);
 
-  // Add or update transaction
+  const resetForm = () => {
+    setEditingId(null);
+    setType("expense");
+    setAmount("");
+    setCategory("");
+    setDescription("");
+    setPaymentMethod("UPI");
+  };
+
   const handleSubmit = async (
     e: React.FormEvent<HTMLFormElement>
   ) => {
@@ -79,7 +112,10 @@ function Dashboard({
 
         setMessage("Transaction updated successfully!");
       } else {
-        await api.post("/api/transactions", transactionData);
+        await api.post(
+          "/api/transactions",
+          transactionData
+        );
 
         setMessage("Transaction added successfully!");
       }
@@ -97,7 +133,6 @@ function Dashboard({
     }
   };
 
-  // Load selected transaction into the form
   const handleEdit = (transaction: Transaction) => {
     setEditingId(transaction._id);
     setType(transaction.type);
@@ -113,36 +148,21 @@ function Dashboard({
     });
   };
 
-  // Reset form
-  const resetForm = () => {
-    setEditingId(null);
-    setType("expense");
-    setAmount("");
-    setCategory("");
-    setDescription("");
-    setPaymentMethod("UPI");
-  };
-
-  // Cancel editing
   const handleCancelEdit = () => {
     resetForm();
     setMessage("Edit cancelled");
   };
 
-  // Delete transaction
   const handleDelete = async (id: string) => {
     const confirmed = window.confirm(
       "Are you sure you want to delete this transaction?"
     );
 
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     try {
       await api.delete(`/api/transactions/${id}`);
 
-      // If the deleted transaction was being edited, reset the form
       if (editingId === id) {
         resetForm();
       }
@@ -165,67 +185,55 @@ function Dashboard({
 
   const balance = totalIncome - totalExpense;
 
+  const recentTransactions = transactions.slice(0, 5);
+
   return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        background: "#f3f4f6",
-      }}
-    >
+    <div style={layoutStyles.page}>
       <Sidebar
         activePage={activePage}
         setActivePage={setActivePage}
       />
 
-      <main
-        style={{
-          flex: 1,
-          padding: "32px",
-        }}
-      >
+      <main style={layoutStyles.main}>
         {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "30px",
-          }}
-        >
+        <header style={layoutStyles.pageHeader}>
           <div>
-            <h1 style={{ margin: 0 }}>Dashboard</h1>
+            <p style={eyebrowStyle}>FINANCIAL OVERVIEW</p>
 
-            <p style={{ color: "#6b7280" }}>
-              Welcome back! Here's your financial overview.
+            <h1 style={layoutStyles.pageTitle}>
+              Dashboard
+            </h1>
+
+            <p style={layoutStyles.pageSubtitle}>
+              Track your money and stay in control of your
+              financial progress.
             </p>
           </div>
 
-          <button
-            onClick={handleLogout}
-            style={{
-              padding: "10px 20px",
-              background: "#dc2626",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontWeight: "bold",
-            }}
-          >
-            Logout
-          </button>
-        </div>
+          <div style={headerActionsStyle}>
+            <button
+              type="button"
+              onClick={() =>
+                setActivePage("Transactions")
+              }
+              style={buttonStyles.secondary}
+            >
+              <ReceiptText size={17} />
+              View Transactions
+            </button>
 
-        {/* Statistics Cards */}
-        <div
-          style={{
-            display: "flex",
-            gap: "20px",
-            flexWrap: "wrap",
-            marginBottom: "32px",
-          }}
-        >
+            <button
+              type="button"
+              onClick={handleLogout}
+              style={buttonStyles.danger}
+            >
+              Logout
+            </button>
+          </div>
+        </header>
+
+        {/* Summary Cards */}
+        <section style={statsGridStyle}>
           <StatCard
             title="Current Balance"
             value={balance}
@@ -243,124 +251,164 @@ function Dashboard({
             value={totalExpense}
             icon="📉"
           />
-        </div>
+        </section>
 
-        {/* Finance Chart */}
-        <div style={{ marginBottom: "32px" }}>
+        {/* Chart and Quick Add */}
+        <section style={overviewGridStyle}>
           <FinanceChart
             income={totalIncome}
             expense={totalExpense}
           />
-        </div>
 
-        {/* Main Content */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "minmax(300px, 1fr) minmax(400px, 2fr)",
-            gap: "24px",
-          }}
-        >
-          {/* Add / Edit Transaction */}
-          <section
-            style={{
-              background: "white",
-              padding: "24px",
-              borderRadius: "14px",
-              boxShadow: "0 4px 15px rgba(0,0,0,0.06)",
-            }}
-          >
-            <h2>
-              {editingId
-                ? "Edit Transaction"
-                : "Add Transaction"}
-            </h2>
+          <div style={cardStyles.paddedCard}>
+            <div style={sectionHeadingRowStyle}>
+              <div>
+                <p style={sectionEyebrowStyle}>
+                  QUICK ACTION
+                </p>
+
+                <h2 style={textStyles.sectionTitle}>
+                  {editingId
+                    ? "Edit Transaction"
+                    : "Add Transaction"}
+                </h2>
+
+                <p style={sectionDescriptionStyle}>
+                  {editingId
+                    ? "Update the selected transaction."
+                    : "Record income or an expense instantly."}
+                </p>
+              </div>
+
+              <div style={quickActionIconStyle}>
+                {editingId ? (
+                  <Pencil size={19} />
+                ) : (
+                  <Plus size={20} />
+                )}
+              </div>
+            </div>
 
             <form onSubmit={handleSubmit}>
-              <label>Type</label>
+              <div style={typeToggleStyle}>
+                <button
+                  type="button"
+                  onClick={() => setType("expense")}
+                  style={{
+                    ...typeButtonStyle,
+                    ...(type === "expense"
+                      ? expenseActiveStyle
+                      : {}),
+                  }}
+                >
+                  Expense
+                </button>
 
-              <select
-                value={type}
-                onChange={(e) =>
-                  setType(
-                    e.target.value as "income" | "expense"
-                  )
-                }
-                style={inputStyle}
-              >
-                <option value="expense">Expense</option>
-                <option value="income">Income</option>
-              </select>
+                <button
+                  type="button"
+                  onClick={() => setType("income")}
+                  style={{
+                    ...typeButtonStyle,
+                    ...(type === "income"
+                      ? incomeActiveStyle
+                      : {}),
+                  }}
+                >
+                  Income
+                </button>
+              </div>
 
-              <label>Amount</label>
+              <label style={textStyles.label}>
+                Amount
+              </label>
 
-              <input
-                type="number"
-                min="1"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                required
-                style={inputStyle}
-              />
+              <div style={amountInputWrapperStyle}>
+                <span style={currencySymbolStyle}>₹</span>
 
-              <label>Category</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={amount}
+                  onChange={(e) =>
+                    setAmount(e.target.value)
+                  }
+                  placeholder="0"
+                  required
+                  style={amountInputStyle}
+                />
+              </div>
 
-              <input
-                type="text"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                placeholder="Food, Salary, Shopping..."
-                required
-                style={inputStyle}
-              />
+              <div style={formGridStyle}>
+                <div>
+                  <label style={textStyles.label}>
+                    Category
+                  </label>
 
-              <label>Description</label>
+                  <input
+                    type="text"
+                    value={category}
+                    onChange={(e) =>
+                      setCategory(e.target.value)
+                    }
+                    placeholder="Food, Salary..."
+                    required
+                    style={inputStyles.input}
+                  />
+                </div>
+
+                <div>
+                  <label style={textStyles.label}>
+                    Payment Method
+                  </label>
+
+                  <select
+                    value={paymentMethod}
+                    onChange={(e) =>
+                      setPaymentMethod(e.target.value)
+                    }
+                    style={inputStyles.select}
+                  >
+                    <option value="UPI">UPI</option>
+                    <option value="Card">Card</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Bank Transfer">
+                      Bank Transfer
+                    </option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <label style={textStyles.label}>
+                Description
+              </label>
 
               <input
                 type="text"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Optional description"
-                style={inputStyle}
-              />
-
-              <label>Payment Method</label>
-
-              <select
-                value={paymentMethod}
                 onChange={(e) =>
-                  setPaymentMethod(e.target.value)
+                  setDescription(e.target.value)
                 }
-                style={inputStyle}
-              >
-                <option value="UPI">UPI</option>
-                <option value="Card">Card</option>
-                <option value="Cash">Cash</option>
-                <option value="Bank Transfer">
-                  Bank Transfer
-                </option>
-                <option value="Other">Other</option>
-              </select>
+                placeholder="Add an optional note"
+                style={inputStyles.input}
+              />
 
               <button
                 type="submit"
                 style={{
+                  ...buttonStyles.primary,
                   width: "100%",
-                  padding: "12px",
-                  background: editingId
-                    ? "#2563eb"
-                    : "#080a0e",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
                 }}
               >
                 {editingId
                   ? "Update Transaction"
                   : "Add Transaction"}
+
+                <ArrowRight size={17} />
               </button>
 
               {editingId && (
@@ -368,15 +416,9 @@ function Dashboard({
                   type="button"
                   onClick={handleCancelEdit}
                   style={{
+                    ...buttonStyles.secondary,
                     width: "100%",
-                    padding: "12px",
                     marginTop: "10px",
-                    background: "#e5e7eb",
-                    color: "#111827",
-                    border: "none",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    fontWeight: "bold",
                   }}
                 >
                   Cancel Edit
@@ -385,137 +427,460 @@ function Dashboard({
             </form>
 
             {message && (
-              <p style={{ marginTop: "16px" }}>
+              <div style={messageStyle}>
                 {message}
-              </p>
+              </div>
             )}
-          </section>
+          </div>
+        </section>
 
-          {/* Recent Transactions */}
-          <section
-            style={{
-              background: "white",
-              padding: "24px",
-              borderRadius: "14px",
-              boxShadow: "0 4px 15px rgba(0,0,0,0.06)",
-            }}
-          >
-            <h2>Recent Transactions</h2>
+        {/* Recent Transactions */}
+        <section
+          style={{
+            ...cardStyles.paddedCard,
+            marginTop: "24px",
+          }}
+        >
+          <div style={transactionsHeaderStyle}>
+            <div>
+              <p style={sectionEyebrowStyle}>
+                ACTIVITY
+              </p>
 
-            {transactions.length === 0 ? (
-              <p>No transactions yet.</p>
-            ) : (
-              transactions.map((transaction) => (
-                <div
-                  key={transaction._id}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: "20px",
-                    padding: "16px 0",
-                    borderBottom: "1px solid #e5e7eb",
-                  }}
-                >
-                  <div>
-                    <strong>
-                      {transaction.category}
-                    </strong>
+              <h2 style={textStyles.sectionTitle}>
+                Recent Transactions
+              </h2>
 
-                    <p
-                      style={{
-                        margin: "5px 0",
-                        color: "#6b7280",
-                      }}
-                    >
-                      {transaction.description ||
-                        "No description"}
-                    </p>
+              <p style={sectionDescriptionStyle}>
+                Your latest financial activity.
+              </p>
+            </div>
 
-                    <small>
-                      {transaction.paymentMethod}
-                    </small>
-                  </div>
+            <button
+              type="button"
+              onClick={() =>
+                setActivePage("Transactions")
+              }
+              style={viewAllButtonStyle}
+            >
+              View all
+              <ArrowRight size={16} />
+            </button>
+          </div>
 
+          {recentTransactions.length === 0 ? (
+            <div style={emptyStateStyle}>
+              <div style={emptyIconStyle}>
+                <ReceiptText size={25} />
+              </div>
+
+              <h3 style={emptyTitleStyle}>
+                No transactions yet
+              </h3>
+
+              <p style={emptyTextStyle}>
+                Add your first transaction to start tracking
+                your finances.
+              </p>
+            </div>
+          ) : (
+            <div>
+              {recentTransactions.map(
+                (transaction, index) => (
                   <div
+                    key={transaction._id}
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
+                      ...transactionRowStyle,
+                      borderBottom:
+                        index ===
+                        recentTransactions.length - 1
+                          ? "none"
+                          : `1px solid ${theme.colors.borderLight}`,
                     }}
                   >
-                    <strong
-                      style={{
-                        marginRight: "6px",
-                        color:
-                          transaction.type === "income"
-                            ? "#16a34a"
-                            : "#dc2626",
-                      }}
-                    >
-                      {transaction.type === "income"
-                        ? "+"
-                        : "-"}
-                      ₹
-                      {transaction.amount.toLocaleString(
-                        "en-IN"
-                      )}
-                    </strong>
+                    <div style={transactionMainStyle}>
+                      <div
+                        style={{
+                          ...transactionIconStyle,
+                          background:
+                            transaction.type === "income"
+                              ? theme.colors.successSoft
+                              : theme.colors.dangerSoft,
+                          color:
+                            transaction.type === "income"
+                              ? theme.colors.success
+                              : theme.colors.danger,
+                        }}
+                      >
+                        <CreditCard size={19} />
+                      </div>
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleEdit(transaction)
-                      }
-                      style={{
-                        padding: "7px 12px",
-                        background: "#dbeafe",
-                        color: "#2563eb",
-                        border: "none",
-                        borderRadius: "7px",
-                        cursor: "pointer",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      Edit
-                    </button>
+                      <div>
+                        <div style={transactionTitleRowStyle}>
+                          <strong style={transactionTitleStyle}>
+                            {transaction.category}
+                          </strong>
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleDelete(transaction._id)
-                      }
-                      style={{
-                        padding: "7px 12px",
-                        background: "#fee2e2",
-                        color: "#dc2626",
-                        border: "none",
-                        borderRadius: "7px",
-                        cursor: "pointer",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      Delete
-                    </button>
+                          <span style={paymentBadgeStyle}>
+                            {transaction.paymentMethod}
+                          </span>
+                        </div>
+
+                        <p style={transactionDescriptionStyle}>
+                          {transaction.description ||
+                            "No description"}
+                        </p>
+
+                        <span style={transactionDateStyle}>
+                          {formatDate(transaction.date)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={transactionRightStyle}>
+                      <strong
+                        style={{
+                          ...transactionAmountStyle,
+                          color:
+                            transaction.type === "income"
+                              ? theme.colors.success
+                              : theme.colors.danger,
+                        }}
+                      >
+                        {transaction.type === "income"
+                          ? "+"
+                          : "-"}
+                        ₹
+                        {transaction.amount.toLocaleString(
+                          "en-IN"
+                        )}
+                      </strong>
+
+                      <div style={rowActionsStyle}>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleEdit(transaction)
+                          }
+                          title="Edit transaction"
+                          style={iconButtonStyle}
+                        >
+                          <Pencil size={16} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleDelete(transaction._id)
+                          }
+                          title="Delete transaction"
+                          style={{
+                            ...iconButtonStyle,
+                            color: theme.colors.danger,
+                            background:
+                              theme.colors.dangerSoft,
+                          }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))
-            )}
-          </section>
-        </div>
+                )
+              )}
+            </div>
+          )}
+        </section>
       </main>
     </div>
   );
 }
 
-const inputStyle = {
-  width: "100%",
-  padding: "11px",
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+const eyebrowStyle = {
+  margin: "0 0 8px",
+  color: theme.colors.primary,
+  fontSize: "10px",
+  fontWeight: 800,
+  letterSpacing: "1.5px",
+};
+
+const headerActionsStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  flexWrap: "wrap" as const,
+};
+
+const statsGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(3, minmax(200px, 1fr))",
+  gap: "18px",
+  marginBottom: "24px",
+};
+
+const overviewGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "minmax(420px, 1.55fr) minmax(320px, 1fr)",
+  gap: "24px",
+  alignItems: "stretch",
+};
+
+const sectionHeadingRowStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "16px",
+  marginBottom: "20px",
+};
+
+const sectionEyebrowStyle = {
+  margin: "0 0 7px",
+  color: theme.colors.primary,
+  fontSize: "9px",
+  fontWeight: 800,
+  letterSpacing: "1.3px",
+};
+
+const sectionDescriptionStyle = {
+  margin: "7px 0 0",
+  color: theme.colors.textMuted,
+  fontSize: "12px",
+};
+
+const quickActionIconStyle = {
+  width: "40px",
+  height: "40px",
+  flexShrink: 0,
+  borderRadius: "12px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: theme.colors.primarySoft,
+  color: theme.colors.primary,
+};
+
+const typeToggleStyle = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "6px",
+  padding: "5px",
+  marginBottom: "18px",
+  background: theme.colors.surfaceSoft,
+  borderRadius: theme.radius.medium,
+};
+
+const typeButtonStyle = {
+  padding: "9px",
+  border: "none",
+  borderRadius: "9px",
+  background: "transparent",
+  color: theme.colors.textSecondary,
+  cursor: "pointer",
+  fontWeight: 650,
+};
+
+const expenseActiveStyle = {
+  background: theme.colors.surface,
+  color: theme.colors.danger,
+  boxShadow: theme.shadow.small,
+};
+
+const incomeActiveStyle = {
+  background: theme.colors.surface,
+  color: theme.colors.success,
+  boxShadow: theme.shadow.small,
+};
+
+const amountInputWrapperStyle = {
+  position: "relative" as const,
   marginTop: "6px",
   marginBottom: "16px",
-  border: "1px solid #d1d5db",
-  borderRadius: "8px",
+};
+
+const currencySymbolStyle = {
+  position: "absolute" as const,
+  left: "14px",
+  top: "50%",
+  transform: "translateY(-50%)",
+  color: theme.colors.textSecondary,
+  fontSize: "18px",
+  fontWeight: 700,
+};
+
+const amountInputStyle = {
+  width: "100%",
+  padding: "13px 14px 13px 35px",
+  border: `1px solid ${theme.colors.border}`,
+  borderRadius: theme.radius.medium,
+  background: theme.colors.surface,
+  color: theme.colors.text,
+  fontSize: "20px",
+  fontWeight: 700,
+  outline: "none",
   boxSizing: "border-box" as const,
+};
+
+const formGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "12px",
+};
+
+const messageStyle = {
+  marginTop: "14px",
+  padding: "10px 12px",
+  borderRadius: theme.radius.small,
+  background: theme.colors.infoSoft,
+  color: theme.colors.info,
+  fontSize: "12px",
+  fontWeight: 600,
+};
+
+const transactionsHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "20px",
+  marginBottom: "8px",
+};
+
+const viewAllButtonStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "6px",
+  padding: "8px 11px",
+  border: "none",
+  background: theme.colors.primarySoft,
+  color: theme.colors.primary,
+  borderRadius: theme.radius.small,
+  cursor: "pointer",
+  fontSize: "12px",
+  fontWeight: 700,
+};
+
+const transactionRowStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "20px",
+  padding: "17px 0",
+};
+
+const transactionMainStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "13px",
+  minWidth: 0,
+};
+
+const transactionIconStyle = {
+  width: "42px",
+  height: "42px",
+  flexShrink: 0,
+  borderRadius: "12px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const transactionTitleRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  flexWrap: "wrap" as const,
+};
+
+const transactionTitleStyle = {
+  color: theme.colors.text,
+  fontSize: "14px",
+};
+
+const paymentBadgeStyle = {
+  padding: "3px 7px",
+  borderRadius: theme.radius.pill,
+  background: theme.colors.surfaceSoft,
+  color: theme.colors.textSecondary,
+  fontSize: "9px",
+  fontWeight: 700,
+};
+
+const transactionDescriptionStyle = {
+  margin: "4px 0",
+  color: theme.colors.textSecondary,
+  fontSize: "12px",
+};
+
+const transactionDateStyle = {
+  color: theme.colors.textMuted,
+  fontSize: "10px",
+};
+
+const transactionRightStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "18px",
+};
+
+const transactionAmountStyle = {
+  minWidth: "110px",
+  textAlign: "right" as const,
+  fontSize: "14px",
+};
+
+const rowActionsStyle = {
+  display: "flex",
+  gap: "7px",
+};
+
+const iconButtonStyle = {
+  width: "34px",
+  height: "34px",
+  border: "none",
+  borderRadius: "9px",
+  background: theme.colors.primarySoft,
+  color: theme.colors.primary,
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const emptyStateStyle = {
+  padding: "50px 20px",
+  textAlign: "center" as const,
+};
+
+const emptyIconStyle = {
+  width: "52px",
+  height: "52px",
+  margin: "0 auto 14px",
+  borderRadius: "15px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: theme.colors.primarySoft,
+  color: theme.colors.primary,
+};
+
+const emptyTitleStyle = {
+  margin: "0 0 7px",
+  color: theme.colors.text,
+};
+
+const emptyTextStyle = {
+  margin: 0,
+  color: theme.colors.textMuted,
+  fontSize: "13px",
 };
 
 export default Dashboard;

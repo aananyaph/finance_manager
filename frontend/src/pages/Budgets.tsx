@@ -1,6 +1,28 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  AlertTriangle,
+  CalendarDays,
+  CheckCircle2,
+  CircleDollarSign,
+  Pencil,
+  Plus,
+  Target,
+  Trash2,
+  WalletCards,
+  X,
+} from "lucide-react";
+
 import api from "../services/api";
 import Sidebar from "../components/Sidebar";
+
+import {
+  buttonStyles,
+  cardStyles,
+  inputStyles,
+  layoutStyles,
+  textStyles,
+  theme,
+} from "../styles/theme";
 
 type Budget = {
   _id: string;
@@ -19,6 +41,21 @@ type BudgetsProps = {
   activePage: string;
   setActivePage: (page: string) => void;
 };
+
+const monthNames = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 
 function Budgets({
   onLogout,
@@ -39,7 +76,9 @@ function Budgets({
     currentDate.getFullYear()
   );
 
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] =
+    useState<string | null>(null);
+
   const [message, setMessage] = useState("");
 
   const fetchBudgets = async () => {
@@ -87,7 +126,6 @@ function Budgets({
         setMessage("Budget updated successfully!");
       } else {
         await api.post("/api/budgets", budgetData);
-
         setMessage("Budget created successfully!");
       }
 
@@ -109,8 +147,12 @@ function Budgets({
     setEditingId(budget._id);
     setCategory(budget.category);
     setLimit(budget.limit.toString());
-
     setMessage("Editing budget...");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
   const handleCancelEdit = () => {
@@ -123,9 +165,7 @@ function Budgets({
       "Are you sure you want to delete this budget?"
     );
 
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     try {
       await api.delete(`/api/budgets/${id}`);
@@ -148,91 +188,84 @@ function Budgets({
     onLogout();
   };
 
+  const summary = useMemo(() => {
+    const totalBudget = budgets.reduce(
+      (total, budget) => total + budget.limit,
+      0
+    );
+
+    const totalSpent = budgets.reduce(
+      (total, budget) => total + budget.spent,
+      0
+    );
+
+    return {
+      totalBudget,
+      totalSpent,
+      remaining: totalBudget - totalSpent,
+    };
+  }, [budgets]);
+
   return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        background: "#f3f4f6",
-      }}
-    >
+    <div style={layoutStyles.page}>
       <Sidebar
         activePage={activePage}
         setActivePage={setActivePage}
       />
 
-      <main
-        style={{
-          flex: 1,
-          padding: "32px",
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "30px",
-          }}
-        >
+      <main style={layoutStyles.main}>
+        <header style={layoutStyles.pageHeader}>
           <div>
-            <h1 style={{ margin: 0 }}>
-              Budget Management
+            <p style={eyebrowStyle}>
+              SPENDING CONTROL
+            </p>
+
+            <h1 style={layoutStyles.pageTitle}>
+              Budgets
             </h1>
 
-            <p style={{ color: "#6b7280" }}>
-              Set monthly limits and track your spending.
+            <p style={layoutStyles.pageSubtitle}>
+              Set monthly limits and stay ahead of your spending.
             </p>
           </div>
 
           <button
+            type="button"
             onClick={handleLogout}
-            style={logoutButtonStyle}
+            style={buttonStyles.danger}
           >
             Logout
           </button>
-        </div>
+        </header>
 
-        {/* Month and Year Filter */}
-        <section
-          style={{
-            background: "white",
-            padding: "20px",
-            borderRadius: "14px",
-            marginBottom: "24px",
-          }}
-        >
-          <h3>Select Budget Period</h3>
+        <section style={periodCardStyle}>
+          <div style={periodHeadingStyle}>
+            <div style={periodIconStyle}>
+              <CalendarDays size={20} />
+            </div>
 
-          <div
-            style={{
-              display: "flex",
-              gap: "16px",
-            }}
-          >
+            <div>
+              <h2 style={textStyles.sectionTitle}>
+                Budget Period
+              </h2>
+
+              <p style={descriptionStyle}>
+                Viewing budgets for {monthNames[month - 1]}{" "}
+                {year}
+              </p>
+            </div>
+          </div>
+
+          <div style={periodControlsStyle}>
             <select
               value={month}
               onChange={(e) => {
                 setMonth(Number(e.target.value));
                 resetForm();
               }}
-              style={inputStyle}
+              style={compactSelectStyle}
             >
-              {[
-                "January",
-                "February",
-                "March",
-                "April",
-                "May",
-                "June",
-                "July",
-                "August",
-                "September",
-                "October",
-                "November",
-                "December",
-              ].map((name, index) => (
+              {monthNames.map((name, index) => (
                 <option
                   key={name}
                   value={index + 1}
@@ -245,33 +278,98 @@ function Budgets({
             <input
               type="number"
               value={year}
+              min="2000"
+              max="2100"
               onChange={(e) => {
                 setYear(Number(e.target.value));
                 resetForm();
               }}
-              style={inputStyle}
+              style={yearInputStyle}
             />
           </div>
         </section>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "minmax(280px, 1fr) minmax(450px, 2fr)",
-            gap: "24px",
-          }}
-        >
-          {/* Create / Edit Budget */}
-          <section style={cardStyle}>
-            <h2>
-              {editingId
-                ? "Edit Budget"
-                : "Create Budget"}
-            </h2>
+        <section style={summaryGridStyle}>
+          <SummaryCard
+            title="Total Budget"
+            value={summary.totalBudget}
+            subtitle={`${budgets.length} active categor${
+              budgets.length === 1 ? "y" : "ies"
+            }`}
+            icon={<Target size={20} />}
+            color={theme.colors.primary}
+            background={theme.colors.primarySoft}
+          />
+
+          <SummaryCard
+            title="Total Spent"
+            value={summary.totalSpent}
+            subtitle="Across all categories"
+            icon={<WalletCards size={20} />}
+            color={theme.colors.warning}
+            background={theme.colors.warningSoft}
+          />
+
+          <SummaryCard
+            title={
+              summary.remaining >= 0
+                ? "Remaining"
+                : "Over Budget"
+            }
+            value={Math.abs(summary.remaining)}
+            subtitle={
+              summary.remaining >= 0
+                ? "Available to spend"
+                : "Above your total limit"
+            }
+            icon={<CircleDollarSign size={20} />}
+            color={
+              summary.remaining >= 0
+                ? theme.colors.success
+                : theme.colors.danger
+            }
+            background={
+              summary.remaining >= 0
+                ? theme.colors.successSoft
+                : theme.colors.dangerSoft
+            }
+          />
+        </section>
+
+        <section style={contentGridStyle}>
+          <div style={cardStyles.paddedCard}>
+            <div style={formHeaderStyle}>
+              <div>
+                <p style={sectionEyebrowStyle}>
+                  {editingId ? "UPDATE" : "NEW LIMIT"}
+                </p>
+
+                <h2 style={textStyles.sectionTitle}>
+                  {editingId
+                    ? "Edit Budget"
+                    : "Create Budget"}
+                </h2>
+
+                <p style={descriptionStyle}>
+                  {editingId
+                    ? "Update this monthly spending limit."
+                    : `Set a limit for ${monthNames[month - 1]}.`}
+                </p>
+              </div>
+
+              <div style={formIconStyle}>
+                {editingId ? (
+                  <Pencil size={19} />
+                ) : (
+                  <Plus size={20} />
+                )}
+              </div>
+            </div>
 
             <form onSubmit={handleSubmit}>
-              <label>Category</label>
+              <label style={textStyles.label}>
+                Category
+              </label>
 
               <input
                 type="text"
@@ -281,30 +379,34 @@ function Budgets({
                 }
                 placeholder="Food, Shopping, Travel..."
                 required
-                style={inputStyle}
+                style={inputStyles.input}
               />
 
-              <label>Monthly Limit</label>
+              <label style={textStyles.label}>
+                Monthly Limit
+              </label>
 
-              <input
-                type="number"
-                min="1"
-                value={limit}
-                onChange={(e) =>
-                  setLimit(e.target.value)
-                }
-                placeholder="5000"
-                required
-                style={inputStyle}
-              />
+              <div style={amountWrapperStyle}>
+                <span style={currencyStyle}>₹</span>
+
+                <input
+                  type="number"
+                  min="1"
+                  value={limit}
+                  onChange={(e) =>
+                    setLimit(e.target.value)
+                  }
+                  placeholder="5000"
+                  required
+                  style={amountInputStyle}
+                />
+              </div>
 
               <button
                 type="submit"
                 style={{
-                  ...mainButtonStyle,
-                  background: editingId
-                    ? "#2563eb"
-                    : "#111827",
+                  ...buttonStyles.primary,
+                  width: "100%",
                 }}
               >
                 {editingId
@@ -316,248 +418,615 @@ function Budgets({
                 <button
                   type="button"
                   onClick={handleCancelEdit}
-                  style={cancelButtonStyle}
+                  style={{
+                    ...buttonStyles.secondary,
+                    width: "100%",
+                    marginTop: "10px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "7px",
+                  }}
                 >
+                  <X size={16} />
                   Cancel Edit
                 </button>
               )}
             </form>
 
             {message && (
-              <p style={{ marginTop: "16px" }}>
+              <div style={messageStyle}>
                 {message}
-              </p>
+              </div>
             )}
-          </section>
+          </div>
 
-          {/* Budget Cards */}
-          <section>
-            <h2 style={{ marginTop: 0 }}>
-              Monthly Budgets
-            </h2>
+          <div style={cardStyles.paddedCard}>
+            <div style={budgetListHeaderStyle}>
+              <div>
+                <p style={sectionEyebrowStyle}>
+                  MONTHLY PLAN
+                </p>
+
+                <h2 style={textStyles.sectionTitle}>
+                  Category Budgets
+                </h2>
+
+                <p style={descriptionStyle}>
+                  {budgets.length} budget
+                  {budgets.length === 1 ? "" : "s"} for{" "}
+                  {monthNames[month - 1]}
+                </p>
+              </div>
+            </div>
 
             {budgets.length === 0 ? (
-              <div style={cardStyle}>
-                No budgets created for this month.
+              <div style={emptyStateStyle}>
+                <div style={emptyIconStyle}>
+                  <Target size={25} />
+                </div>
+
+                <h3 style={emptyTitleStyle}>
+                  No budgets yet
+                </h3>
+
+                <p style={emptyTextStyle}>
+                  Create your first spending limit for this month.
+                </p>
               </div>
             ) : (
-              budgets.map((budget) => {
-                const displayPercentage = Math.min(
-                  budget.percentage,
-                  100
-                );
-
-                const progressColor =
-                  budget.status === "exceeded"
-                    ? "#dc2626"
-                    : budget.status === "warning"
-                      ? "#f59e0b"
-                      : "#16a34a";
-
-                return (
-                  <div
+              <div>
+                {budgets.map((budget, index) => (
+                  <BudgetRow
                     key={budget._id}
-                    style={{
-                      ...cardStyle,
-                      marginBottom: "16px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: "16px",
-                      }}
-                    >
-                      <h3 style={{ margin: 0 }}>
-                        {budget.category}
-                      </h3>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                        }}
-                      >
-                        <strong
-                          style={{
-                            color: progressColor,
-                          }}
-                        >
-                          {budget.percentage}%
-                        </strong>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleEdit(budget)
-                          }
-                          style={editButtonStyle}
-                        >
-                          Edit
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleDelete(budget._id)
-                          }
-                          style={deleteButtonStyle}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-
-                    <p>
-                      ₹
-                      {budget.spent.toLocaleString(
-                        "en-IN"
-                      )}{" "}
-                      spent of ₹
-                      {budget.limit.toLocaleString(
-                        "en-IN"
-                      )}
-                    </p>
-
-                    <div
-                      style={{
-                        width: "100%",
-                        height: "12px",
-                        background: "#e5e7eb",
-                        borderRadius: "10px",
-                        overflow: "hidden",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: `${displayPercentage}%`,
-                          height: "100%",
-                          background: progressColor,
-                        }}
-                      />
-                    </div>
-
-                    <p
-                      style={{
-                        marginBottom: 0,
-                        color:
-                          budget.remaining < 0
-                            ? "#dc2626"
-                            : "#6b7280",
-                      }}
-                    >
-                      {budget.remaining >= 0
-                        ? "Remaining"
-                        : "Over budget"}
-                      : ₹
-                      {Math.abs(
-                        budget.remaining
-                      ).toLocaleString("en-IN")}
-                    </p>
-
-                    {budget.status === "warning" && (
-                      <p
-                        style={{
-                          color: "#d97706",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        ⚠ You have used over 80% of this
-                        budget.
-                      </p>
-                    )}
-
-                    {budget.status === "exceeded" && (
-                      <p
-                        style={{
-                          color: "#dc2626",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        🚨 Budget exceeded!
-                      </p>
-                    )}
-                  </div>
-                );
-              })
+                    budget={budget}
+                    isLast={index === budgets.length - 1}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
             )}
-          </section>
-        </div>
+          </div>
+        </section>
       </main>
     </div>
   );
 }
 
-const cardStyle = {
-  background: "white",
-  padding: "24px",
-  borderRadius: "14px",
-  boxShadow: "0 4px 15px rgba(0,0,0,0.06)",
+function SummaryCard({
+  title,
+  value,
+  subtitle,
+  icon,
+  color,
+  background,
+}: {
+  title: string;
+  value: number;
+  subtitle: string;
+  icon: React.ReactNode;
+  color: string;
+  background: string;
+}) {
+  return (
+    <div style={summaryCardStyle}>
+      <div
+        style={{
+          ...summaryIconStyle,
+          color,
+          background,
+        }}
+      >
+        {icon}
+      </div>
+
+      <p style={summaryTitleStyle}>{title}</p>
+
+      <h2 style={summaryValueStyle}>
+        ₹{value.toLocaleString("en-IN")}
+      </h2>
+
+      <p style={summarySubtitleStyle}>
+        {subtitle}
+      </p>
+    </div>
+  );
+}
+
+function BudgetRow({
+  budget,
+  isLast,
+  onEdit,
+  onDelete,
+}: {
+  budget: Budget;
+  isLast: boolean;
+  onEdit: (budget: Budget) => void;
+  onDelete: (id: string) => void;
+}) {
+  const displayPercentage = Math.min(
+    Math.max(budget.percentage, 0),
+    100
+  );
+
+  const statusConfig = {
+    safe: {
+      label: "Safe",
+      color: theme.colors.success,
+      background: theme.colors.successSoft,
+      icon: <CheckCircle2 size={14} />,
+    },
+    warning: {
+      label: "Warning",
+      color: theme.colors.warning,
+      background: theme.colors.warningSoft,
+      icon: <AlertTriangle size={14} />,
+    },
+    exceeded: {
+      label: "Exceeded",
+      color: theme.colors.danger,
+      background: theme.colors.dangerSoft,
+      icon: <AlertTriangle size={14} />,
+    },
+  };
+
+  const status = statusConfig[budget.status];
+
+  return (
+    <div
+      style={{
+        ...budgetRowStyle,
+        borderBottom: isLast
+          ? "none"
+          : `1px solid ${theme.colors.borderLight}`,
+      }}
+    >
+      <div style={budgetTopRowStyle}>
+        <div>
+          <div style={budgetTitleRowStyle}>
+            <h3 style={budgetTitleStyle}>
+              {budget.category}
+            </h3>
+
+            <span
+              style={{
+                ...statusBadgeStyle,
+                color: status.color,
+                background: status.background,
+              }}
+            >
+              {status.icon}
+              {status.label}
+            </span>
+          </div>
+
+          <p style={budgetMetaStyle}>
+            ₹{budget.spent.toLocaleString("en-IN")} spent of{" "}
+            ₹{budget.limit.toLocaleString("en-IN")}
+          </p>
+        </div>
+
+        <div style={actionsStyle}>
+          <button
+            type="button"
+            onClick={() => onEdit(budget)}
+            title="Edit budget"
+            style={editButtonStyle}
+          >
+            <Pencil size={16} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onDelete(budget._id)}
+            title="Delete budget"
+            style={deleteButtonStyle}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      </div>
+
+      <div style={progressHeaderStyle}>
+        <span style={progressLabelStyle}>
+          Spending progress
+        </span>
+
+        <strong
+          style={{
+            ...percentageStyle,
+            color: status.color,
+          }}
+        >
+          {budget.percentage.toFixed(0)}%
+        </strong>
+      </div>
+
+      <div style={progressTrackStyle}>
+        <div
+          style={{
+            width: `${displayPercentage}%`,
+            height: "100%",
+            borderRadius: theme.radius.pill,
+            background: status.color,
+            transition: "width 0.3s ease",
+          }}
+        />
+      </div>
+
+      <div style={budgetFooterStyle}>
+        <span style={remainingLabelStyle}>
+          {budget.remaining >= 0
+            ? "Remaining"
+            : "Over budget"}
+        </span>
+
+        <strong
+          style={{
+            color:
+              budget.remaining >= 0
+                ? theme.colors.text
+                : theme.colors.danger,
+          }}
+        >
+          ₹
+          {Math.abs(budget.remaining).toLocaleString(
+            "en-IN"
+          )}
+        </strong>
+      </div>
+
+      {budget.status !== "safe" && (
+        <div
+          style={{
+            ...alertStyle,
+            color: status.color,
+            background: status.background,
+          }}
+        >
+          <AlertTriangle size={15} />
+
+          <span>
+            {budget.status === "warning"
+              ? "You have used over 80% of this budget."
+              : "This budget limit has been exceeded."}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const eyebrowStyle = {
+  margin: "0 0 8px",
+  color: theme.colors.primary,
+  fontSize: "10px",
+  fontWeight: 800,
+  letterSpacing: "1.5px",
 };
 
-const inputStyle = {
-  width: "100%",
-  padding: "11px",
+const descriptionStyle = {
+  margin: "7px 0 0",
+  color: theme.colors.textMuted,
+  fontSize: "12px",
+};
+
+const sectionEyebrowStyle = {
+  margin: "0 0 7px",
+  color: theme.colors.primary,
+  fontSize: "9px",
+  fontWeight: 800,
+  letterSpacing: "1.3px",
+};
+
+const periodCardStyle = {
+  ...cardStyles.paddedCard,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "20px",
+  marginBottom: "18px",
+  flexWrap: "wrap" as const,
+};
+
+const periodHeadingStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "12px",
+};
+
+const periodIconStyle = {
+  width: "42px",
+  height: "42px",
+  flexShrink: 0,
+  borderRadius: "12px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: theme.colors.primarySoft,
+  color: theme.colors.primary,
+};
+
+const periodControlsStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  flexWrap: "wrap" as const,
+  flex: 1,
+  justifyContent: "flex-end",
+};
+
+const compactSelectStyle = {
+  padding: "10px 35px 10px 12px",
+  border: `1px solid ${theme.colors.border}`,
+  borderRadius: theme.radius.medium,
+  background: theme.colors.surface,
+  color: theme.colors.text,
+  outline: "none",
+  cursor: "pointer",
+};
+
+const yearInputStyle = {
+  width: "100px",
+  padding: "10px 12px",
+  border: `1px solid ${theme.colors.border}`,
+  borderRadius: theme.radius.medium,
+  background: theme.colors.surface,
+  color: theme.colors.text,
+  outline: "none",
+  boxSizing: "border-box" as const,
+};
+const summaryGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: "18px",
+  marginBottom: "24px",
+};
+const summaryCardStyle = {
+  ...cardStyles.paddedCard,
+};
+
+const summaryIconStyle = {
+  width: "42px",
+  height: "42px",
+  borderRadius: "12px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: "18px",
+};
+
+const summaryTitleStyle = {
+  margin: 0,
+  color: theme.colors.textSecondary,
+  fontSize: "13px",
+  fontWeight: 600,
+};
+
+const summaryValueStyle = {
+  margin: "8px 0",
+  color: theme.colors.text,
+  fontSize: "25px",
+  letterSpacing: "-0.6px",
+};
+
+const summarySubtitleStyle = {
+  margin: 0,
+  color: theme.colors.textMuted,
+  fontSize: "11px",
+};
+
+const contentGridStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit, minmax(320px, 1fr))",
+  gap: "24px",
+  alignItems: "start",
+};
+
+const formHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "16px",
+  marginBottom: "20px",
+};
+
+const formIconStyle = {
+  width: "40px",
+  height: "40px",
+  flexShrink: 0,
+  borderRadius: "12px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: theme.colors.primarySoft,
+  color: theme.colors.primary,
+};
+
+const amountWrapperStyle = {
+  position: "relative" as const,
   marginTop: "6px",
   marginBottom: "16px",
-  border: "1px solid #d1d5db",
-  borderRadius: "8px",
+};
+
+const currencyStyle = {
+  position: "absolute" as const,
+  left: "14px",
+  top: "50%",
+  transform: "translateY(-50%)",
+  color: theme.colors.textSecondary,
+  fontSize: "18px",
+  fontWeight: 700,
+};
+
+const amountInputStyle = {
+  width: "100%",
+  padding: "13px 14px 13px 35px",
+  border: `1px solid ${theme.colors.border}`,
+  borderRadius: theme.radius.medium,
+  background: theme.colors.surface,
+  color: theme.colors.text,
+  fontSize: "20px",
+  fontWeight: 700,
+  outline: "none",
   boxSizing: "border-box" as const,
 };
 
-const mainButtonStyle = {
-  width: "100%",
-  padding: "12px",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
-  fontWeight: "bold",
+const messageStyle = {
+  marginTop: "14px",
+  padding: "10px 12px",
+  borderRadius: theme.radius.small,
+  background: theme.colors.infoSoft,
+  color: theme.colors.info,
+  fontSize: "12px",
+  fontWeight: 600,
 };
 
-const cancelButtonStyle = {
-  width: "100%",
-  padding: "12px",
-  marginTop: "10px",
-  background: "#e5e7eb",
-  color: "#111827",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
-  fontWeight: "bold",
+const budgetListHeaderStyle = {
+  marginBottom: "8px",
+};
+
+const budgetRowStyle = {
+  padding: "20px 0",
+};
+
+const budgetTopRowStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "20px",
+};
+
+const budgetTitleRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "9px",
+  flexWrap: "wrap" as const,
+};
+
+const budgetTitleStyle = {
+  margin: 0,
+  color: theme.colors.text,
+  fontSize: "15px",
+};
+
+const statusBadgeStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "4px",
+  padding: "4px 8px",
+  borderRadius: theme.radius.pill,
+  fontSize: "10px",
+  fontWeight: 700,
+};
+
+const budgetMetaStyle = {
+  margin: "6px 0 0",
+  color: theme.colors.textSecondary,
+  fontSize: "12px",
+};
+
+const actionsStyle = {
+  display: "flex",
+  gap: "7px",
 };
 
 const editButtonStyle = {
-  padding: "7px 12px",
-  background: "#dbeafe",
-  color: "#2563eb",
+  width: "34px",
+  height: "34px",
   border: "none",
-  borderRadius: "7px",
+  borderRadius: "9px",
+  background: theme.colors.primarySoft,
+  color: theme.colors.primary,
   cursor: "pointer",
-  fontWeight: "bold",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
 
 const deleteButtonStyle = {
-  padding: "7px 12px",
-  background: "#fee2e2",
-  color: "#dc2626",
-  border: "none",
-  borderRadius: "7px",
-  cursor: "pointer",
-  fontWeight: "bold",
+  ...editButtonStyle,
+  background: theme.colors.dangerSoft,
+  color: theme.colors.danger,
 };
 
-const logoutButtonStyle = {
-  padding: "10px 20px",
-  background: "#dc2626",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
-  fontWeight: "bold",
+const progressHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginTop: "18px",
+  marginBottom: "8px",
+};
+
+const progressLabelStyle = {
+  color: theme.colors.textMuted,
+  fontSize: "11px",
+};
+
+const percentageStyle = {
+  fontSize: "12px",
+};
+
+const progressTrackStyle = {
+  width: "100%",
+  height: "9px",
+  background: theme.colors.borderLight,
+  borderRadius: theme.radius.pill,
+  overflow: "hidden",
+};
+
+const budgetFooterStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginTop: "10px",
+  fontSize: "12px",
+};
+
+const remainingLabelStyle = {
+  color: theme.colors.textMuted,
+};
+
+const alertStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "7px",
+  marginTop: "14px",
+  padding: "9px 11px",
+  borderRadius: theme.radius.small,
+  fontSize: "11px",
+  fontWeight: 650,
+};
+
+const emptyStateStyle = {
+  padding: "60px 20px",
+  textAlign: "center" as const,
+};
+
+const emptyIconStyle = {
+  width: "52px",
+  height: "52px",
+  margin: "0 auto 14px",
+  borderRadius: "15px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: theme.colors.primarySoft,
+  color: theme.colors.primary,
+};
+
+const emptyTitleStyle = {
+  margin: "0 0 7px",
+  color: theme.colors.text,
+};
+
+const emptyTextStyle = {
+  margin: 0,
+  color: theme.colors.textMuted,
+  fontSize: "13px",
 };
 
 export default Budgets;

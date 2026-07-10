@@ -1,6 +1,30 @@
 import { useEffect, useState } from "react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  BarChart3,
+  CalendarDays,
+  Coins,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Trash2,
+  TrendingUp,
+  Wallet,
+  X,
+} from "lucide-react";
+
 import api from "../services/api";
 import Sidebar from "../components/Sidebar";
+
+import {
+  buttonStyles,
+  cardStyles,
+  inputStyles,
+  layoutStyles,
+  textStyles,
+  theme,
+} from "../styles/theme";
 
 type Investment = {
   _id: string;
@@ -36,7 +60,9 @@ function Investments({
   activePage,
   setActivePage,
 }: InvestmentsProps) {
-  const [investments, setInvestments] = useState<Investment[]>([]);
+  const [investments, setInvestments] = useState<Investment[]>(
+    []
+  );
 
   const [summary, setSummary] = useState<PortfolioSummary>({
     totalInvested: 0,
@@ -54,7 +80,14 @@ function Investments({
   const [currentPrice, setCurrentPrice] = useState("");
   const [purchaseDate, setPurchaseDate] = useState("");
 
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(
+    null
+  );
+
+  const [refreshingId, setRefreshingId] = useState<
+    string | null
+  >(null);
+
   const [message, setMessage] = useState("");
 
   const fetchInvestments = async () => {
@@ -80,10 +113,7 @@ function Investments({
   };
 
   const refreshPortfolio = async () => {
-    await Promise.all([
-      fetchInvestments(),
-      fetchSummary(),
-    ]);
+    await Promise.all([fetchInvestments(), fetchSummary()]);
   };
 
   useEffect(() => {
@@ -125,10 +155,7 @@ function Investments({
 
         setMessage("Investment updated successfully!");
       } else {
-        await api.post(
-          "/api/investments",
-          investmentData
-        );
+        await api.post("/api/investments", investmentData);
 
         setMessage("Investment added successfully!");
       }
@@ -156,9 +183,7 @@ function Investments({
       investment.averageBuyPrice.toString()
     );
 
-    setCurrentPrice(
-      investment.currentPrice.toString()
-    );
+    setCurrentPrice(investment.currentPrice.toString());
 
     setPurchaseDate(
       investment.purchaseDate
@@ -167,6 +192,11 @@ function Investments({
     );
 
     setMessage("Editing investment...");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
   const handleDelete = async (id: string) => {
@@ -193,14 +223,14 @@ function Investments({
 
   const handleRefreshPrice = async (id: string) => {
     try {
+      setRefreshingId(id);
       setMessage("Fetching live market price...");
 
-      await api.put(
-        `/api/investments/${id}/refresh-price`
-      );
+      await api.put(`/api/investments/${id}/refresh-price`);
+
+      await refreshPortfolio();
 
       setMessage("Live price updated successfully!");
-      await refreshPortfolio();
     } catch (error: any) {
       console.error(error);
 
@@ -208,6 +238,8 @@ function Investments({
         error.response?.data?.message ||
           "Could not refresh live price"
       );
+    } finally {
+      setRefreshingId(null);
     }
   };
 
@@ -222,52 +254,49 @@ function Investments({
     onLogout();
   };
 
+  const portfolioPositive = summary.totalProfitLoss >= 0;
+
   return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        background: "#f3f4f6",
-      }}
-    >
+    <div style={layoutStyles.page}>
       <Sidebar
         activePage={activePage}
         setActivePage={setActivePage}
       />
 
-      <main
-        style={{
-          flex: 1,
-          padding: "32px",
-        }}
-      >
-        <div style={headerStyle}>
+      <main style={layoutStyles.main}>
+        <header style={layoutStyles.pageHeader}>
           <div>
-            <h1 style={{ margin: 0 }}>
-              Investment Portfolio
+            <p style={eyebrowStyle}>WEALTH TRACKING</p>
+
+            <h1 style={layoutStyles.pageTitle}>
+              Investments
             </h1>
 
-            <p style={{ color: "#6b7280" }}>
-              Track your holdings, returns, and portfolio
+            <p style={layoutStyles.pageSubtitle}>
+              Track your holdings, live prices, and portfolio
               performance.
             </p>
           </div>
 
           <button
+            type="button"
             onClick={handleLogout}
-            style={logoutButtonStyle}
+            style={buttonStyles.danger}
           >
             Logout
           </button>
-        </div>
+        </header>
 
-        {/* Portfolio Summary */}
-        <div style={summaryGridStyle}>
+        <section style={summaryGridStyle}>
           <SummaryCard
             title="Total Invested"
             value={`₹${summary.totalInvested.toLocaleString(
               "en-IN"
             )}`}
+            subtitle="Original investment value"
+            icon={<Wallet size={20} />}
+            color={theme.colors.primary}
+            background={theme.colors.primarySoft}
           />
 
           <SummaryCard
@@ -275,159 +304,221 @@ function Investments({
             value={`₹${summary.totalCurrentValue.toLocaleString(
               "en-IN"
             )}`}
+            subtitle="Current portfolio worth"
+            icon={<BarChart3 size={20} />}
+            color={theme.colors.info}
+            background={theme.colors.infoSoft}
           />
 
           <SummaryCard
             title="Profit / Loss"
-            value={`${
-              summary.totalProfitLoss >= 0 ? "+" : "-"
-            }₹${Math.abs(
+            value={`${portfolioPositive ? "+" : "-"}₹${Math.abs(
               summary.totalProfitLoss
             ).toLocaleString("en-IN")}`}
-            positive={summary.totalProfitLoss >= 0}
-          />
-
-          <SummaryCard
-            title="Total Return"
-            value={`${summary.totalReturnPercentage.toFixed(
-              2
-            )}%`}
-            positive={
-              summary.totalReturnPercentage >= 0
+            subtitle={
+              portfolioPositive
+                ? "Portfolio is in profit"
+                : "Portfolio is in loss"
+            }
+            icon={
+              portfolioPositive ? (
+                <ArrowUpRight size={20} />
+              ) : (
+                <ArrowDownRight size={20} />
+              )
+            }
+            color={
+              portfolioPositive
+                ? theme.colors.success
+                : theme.colors.danger
+            }
+            background={
+              portfolioPositive
+                ? theme.colors.successSoft
+                : theme.colors.dangerSoft
             }
           />
 
           <SummaryCard
-            title="Holdings"
-            value={summary.totalHoldings.toString()}
+            title="Total Return"
+            value={`${summary.totalReturnPercentage >= 0 ? "+" : ""}${summary.totalReturnPercentage.toFixed(
+              2
+            )}%`}
+            subtitle={`${summary.totalHoldings} holding${
+              summary.totalHoldings === 1 ? "" : "s"
+            } tracked`}
+            icon={<TrendingUp size={20} />}
+            color={
+              summary.totalReturnPercentage >= 0
+                ? theme.colors.success
+                : theme.colors.danger
+            }
+            background={
+              summary.totalReturnPercentage >= 0
+                ? theme.colors.successSoft
+                : theme.colors.dangerSoft
+            }
           />
-        </div>
+        </section>
 
-        <div style={contentGridStyle}>
-          {/* Add / Edit Investment */}
-          <section style={cardStyle}>
-            <h2>
-              {editingId
-                ? "Edit Investment"
-                : "Add Investment"}
-            </h2>
+        <section style={contentGridStyle}>
+          <div style={cardStyles.paddedCard}>
+            <div style={formHeaderStyle}>
+              <div>
+                <p style={sectionEyebrowStyle}>
+                  {editingId ? "UPDATE" : "NEW ASSET"}
+                </p>
+
+                <h2 style={textStyles.sectionTitle}>
+                  {editingId
+                    ? "Edit Investment"
+                    : "Add Investment"}
+                </h2>
+
+                <p style={descriptionStyle}>
+                  {editingId
+                    ? "Update your holding details."
+                    : "Add a new asset to your portfolio."}
+                </p>
+              </div>
+
+              <div style={formIconStyle}>
+                {editingId ? (
+                  <Pencil size={19} />
+                ) : (
+                  <Plus size={20} />
+                )}
+              </div>
+            </div>
 
             <form onSubmit={handleSubmit}>
-              <label>Asset Type</label>
+              <label style={textStyles.label}>
+                Asset Type
+              </label>
 
               <select
                 value={assetType}
-                onChange={(e) =>
-                  setAssetType(e.target.value)
-                }
-                style={inputStyle}
+                onChange={(e) => setAssetType(e.target.value)}
+                style={inputStyles.select}
               >
                 <option value="Stock">Stock</option>
-
                 <option value="Mutual Fund">
                   Mutual Fund
                 </option>
-
                 <option value="ETF">ETF</option>
-
-                <option value="Crypto">
-                  Crypto
-                </option>
-
+                <option value="Crypto">Crypto</option>
                 <option value="Fixed Deposit">
                   Fixed Deposit
                 </option>
-
-                <option value="Other">
-                  Other
-                </option>
+                <option value="Other">Other</option>
               </select>
 
-              <label>Investment Name</label>
+              <label style={textStyles.label}>
+                Investment Name
+              </label>
 
               <input
                 value={name}
-                onChange={(e) =>
-                  setName(e.target.value)
-                }
+                onChange={(e) => setName(e.target.value)}
                 placeholder="Reliance Industries"
                 required
-                style={inputStyle}
+                style={inputStyles.input}
               />
 
-              <label>Symbol</label>
+              <label style={textStyles.label}>Symbol</label>
 
               <input
                 value={symbol}
                 onChange={(e) =>
-                  setSymbol(
-                    e.target.value.toUpperCase()
-                  )
+                  setSymbol(e.target.value.toUpperCase())
                 }
                 placeholder="RELIANCE"
-                style={inputStyle}
+                style={inputStyles.input}
               />
 
-              <label>Quantity</label>
+              <div style={formTwoColumnStyle}>
+                <div>
+                  <label style={textStyles.label}>
+                    Quantity
+                  </label>
 
-              <input
-                type="number"
-                min="0"
-                step="any"
-                value={quantity}
-                onChange={(e) =>
-                  setQuantity(e.target.value)
-                }
-                required
-                style={inputStyle}
-              />
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={quantity}
+                    onChange={(e) =>
+                      setQuantity(e.target.value)
+                    }
+                    placeholder="10"
+                    required
+                    style={inputStyles.input}
+                  />
+                </div>
 
-              <label>Average Buy Price</label>
+                <div>
+                  <label style={textStyles.label}>
+                    Purchase Date
+                  </label>
 
-              <input
-                type="number"
-                min="0"
-                step="any"
-                value={averageBuyPrice}
-                onChange={(e) =>
-                  setAverageBuyPrice(e.target.value)
-                }
-                required
-                style={inputStyle}
-              />
+                  <input
+                    type="date"
+                    value={purchaseDate}
+                    onChange={(e) =>
+                      setPurchaseDate(e.target.value)
+                    }
+                    style={inputStyles.input}
+                  />
+                </div>
+              </div>
 
-              <label>Current Price</label>
+              <label style={textStyles.label}>
+                Average Buy Price
+              </label>
 
-              <input
-                type="number"
-                min="0"
-                step="any"
-                value={currentPrice}
-                onChange={(e) =>
-                  setCurrentPrice(e.target.value)
-                }
-                required
-                style={inputStyle}
-              />
+              <div style={amountWrapperStyle}>
+                <span style={currencyStyle}>₹</span>
 
-              <label>Purchase Date</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={averageBuyPrice}
+                  onChange={(e) =>
+                    setAverageBuyPrice(e.target.value)
+                  }
+                  placeholder="0"
+                  required
+                  style={amountInputStyle}
+                />
+              </div>
 
-              <input
-                type="date"
-                value={purchaseDate}
-                onChange={(e) =>
-                  setPurchaseDate(e.target.value)
-                }
-                style={inputStyle}
-              />
+              <label style={textStyles.label}>
+                Current Price
+              </label>
+
+              <div style={amountWrapperStyle}>
+                <span style={currencyStyle}>₹</span>
+
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={currentPrice}
+                  onChange={(e) =>
+                    setCurrentPrice(e.target.value)
+                  }
+                  placeholder="0"
+                  required
+                  style={amountInputStyle}
+                />
+              </div>
 
               <button
                 type="submit"
                 style={{
-                  ...mainButtonStyle,
-                  background: editingId
-                    ? "#2563eb"
-                    : "#111827",
+                  ...buttonStyles.primary,
+                  width: "100%",
                 }}
               >
                 {editingId
@@ -439,356 +530,673 @@ function Investments({
                 <button
                   type="button"
                   onClick={handleCancelEdit}
-                  style={cancelButtonStyle}
+                  style={{
+                    ...buttonStyles.secondary,
+                    width: "100%",
+                    marginTop: "10px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "7px",
+                  }}
                 >
+                  <X size={16} />
                   Cancel Edit
                 </button>
               )}
             </form>
 
             {message && (
-              <p style={{ marginTop: "16px" }}>
-                {message}
-              </p>
+              <div style={messageStyle}>{message}</div>
             )}
-          </section>
+          </div>
 
-          {/* Holdings */}
-          <section>
-            <h2 style={{ marginTop: 0 }}>
-              Your Holdings
-            </h2>
+          <div style={cardStyles.paddedCard}>
+            <div style={holdingsHeaderStyle}>
+              <div>
+                <p style={sectionEyebrowStyle}>PORTFOLIO</p>
+
+                <h2 style={textStyles.sectionTitle}>
+                  Your Holdings
+                </h2>
+
+                <p style={descriptionStyle}>
+                  {investments.length} asset
+                  {investments.length === 1 ? "" : "s"} in your
+                  portfolio
+                </p>
+              </div>
+
+              <div style={portfolioBadgeStyle}>
+                <Coins size={15} />
+                {summary.totalHoldings} Holdings
+              </div>
+            </div>
 
             {investments.length === 0 ? (
-              <div style={cardStyle}>
-                No investments added yet.
+              <div style={emptyStateStyle}>
+                <div style={emptyIconStyle}>
+                  <TrendingUp size={25} />
+                </div>
+
+                <h3 style={emptyTitleStyle}>
+                  No investments yet
+                </h3>
+
+                <p style={emptyTextStyle}>
+                  Add your first asset to start tracking your
+                  portfolio.
+                </p>
               </div>
             ) : (
-              investments.map((investment) => (
-                <div
-                  key={investment._id}
-                  style={{
-                    ...cardStyle,
-                    marginBottom: "16px",
-                  }}
-                >
-                  <div style={holdingHeaderStyle}>
-                    <div>
-                      <h3 style={{ margin: 0 }}>
-                        {investment.name}
-                      </h3>
-
-                      <p
-                        style={{
-                          margin: "6px 0",
-                          color: "#6b7280",
-                        }}
-                      >
-                        {investment.assetType}
-
-                        {investment.symbol
-                          ? ` • ${investment.symbol}`
-                          : ""}
-                      </p>
-                    </div>
-
-                    <div style={buttonGroupStyle}>
-                      {investment.assetType ===
-                        "Stock" &&
-                        investment.symbol && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleRefreshPrice(
-                                investment._id
-                              )
-                            }
-                            style={refreshButtonStyle}
-                          >
-                            Refresh Live Price
-                          </button>
-                        )}
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleEdit(investment)
-                        }
-                        style={editButtonStyle}
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleDelete(
-                            investment._id
-                          )
-                        }
-                        style={deleteButtonStyle}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-
-                  <div style={holdingStatsStyle}>
-                    <HoldingValue
-                      label="Quantity"
-                      value={investment.quantity.toString()}
-                    />
-
-                    <HoldingValue
-                      label="Invested"
-                      value={`₹${investment.investedValue.toLocaleString(
-                        "en-IN"
-                      )}`}
-                    />
-
-                    <HoldingValue
-                      label="Current Value"
-                      value={`₹${investment.currentValue.toLocaleString(
-                        "en-IN"
-                      )}`}
-                    />
-
-                    <HoldingValue
-                      label="Profit / Loss"
-                      value={`${
-                        investment.profitLoss >= 0
-                          ? "+"
-                          : "-"
-                      }₹${Math.abs(
-                        investment.profitLoss
-                      ).toLocaleString("en-IN")}`}
-                      positive={
-                        investment.profitLoss >= 0
-                      }
-                    />
-
-                    <HoldingValue
-                      label="Return"
-                      value={`${investment.returnPercentage.toFixed(
-                        2
-                      )}%`}
-                      positive={
-                        investment.returnPercentage >=
-                        0
-                      }
-                    />
-                  </div>
-                </div>
-              ))
+              <div>
+                {investments.map((investment, index) => (
+                  <HoldingCard
+                    key={investment._id}
+                    investment={investment}
+                    isLast={index === investments.length - 1}
+                    refreshing={
+                      refreshingId === investment._id
+                    }
+                    onRefresh={handleRefreshPrice}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
             )}
-          </section>
-        </div>
+          </div>
+        </section>
       </main>
     </div>
   );
 }
 
-type ValueProps = {
-  title: string;
-  value: string;
-  positive?: boolean;
-};
-
 function SummaryCard({
   title,
   value,
-  positive,
-}: ValueProps) {
+  subtitle,
+  icon,
+  color,
+  background,
+}: {
+  title: string;
+  value: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  color: string;
+  background: string;
+}) {
   return (
     <div style={summaryCardStyle}>
-      <p
+      <div
         style={{
-          margin: 0,
-          color: "#6b7280",
-          fontSize: "14px",
+          ...summaryIconStyle,
+          color,
+          background,
         }}
       >
-        {title}
-      </p>
+        {icon}
+      </div>
 
-      <h3
-        style={{
-          marginBottom: 0,
-          color:
-            positive === undefined
-              ? "#111827"
-              : positive
-                ? "#16a34a"
-                : "#dc2626",
-        }}
-      >
+      <p style={summaryTitleStyle}>{title}</p>
+
+      <h2 style={{ ...summaryValueStyle, color }}>
         {value}
-      </h3>
+      </h2>
+
+      <p style={summarySubtitleStyle}>{subtitle}</p>
     </div>
   );
 }
 
-type HoldingValueProps = {
-  label: string;
-  value: string;
-  positive?: boolean;
-};
+function HoldingCard({
+  investment,
+  isLast,
+  refreshing,
+  onRefresh,
+  onEdit,
+  onDelete,
+}: {
+  investment: Investment;
+  isLast: boolean;
+  refreshing: boolean;
+  onRefresh: (id: string) => void;
+  onEdit: (investment: Investment) => void;
+  onDelete: (id: string) => void;
+}) {
+  const positive = investment.profitLoss >= 0;
+
+  return (
+    <div
+      style={{
+        ...holdingCardStyle,
+        borderBottom: isLast
+          ? "none"
+          : `1px solid ${theme.colors.borderLight}`,
+      }}
+    >
+      <div style={holdingHeaderStyle}>
+        <div style={holdingIdentityStyle}>
+          <div style={assetIconStyle}>
+            <TrendingUp size={20} />
+          </div>
+
+          <div>
+            <div style={nameRowStyle}>
+              <h3 style={holdingNameStyle}>
+                {investment.name}
+              </h3>
+
+              <span style={assetBadgeStyle}>
+                {investment.assetType}
+              </span>
+            </div>
+
+            <div style={symbolRowStyle}>
+              {investment.symbol && (
+                <span style={symbolStyle}>
+                  {investment.symbol}
+                </span>
+              )}
+
+              {investment.purchaseDate && (
+                <span style={dateStyle}>
+                  <CalendarDays size={12} />
+                  {formatDate(investment.purchaseDate)}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div style={actionGroupStyle}>
+          {investment.assetType === "Stock" &&
+            investment.symbol && (
+              <button
+                type="button"
+                onClick={() => onRefresh(investment._id)}
+                disabled={refreshing}
+                title="Refresh live market price"
+                style={{
+                  ...refreshButtonStyle,
+                  opacity: refreshing ? 0.65 : 1,
+                }}
+              >
+                <RefreshCw size={15} />
+                {refreshing ? "Updating..." : "Live Price"}
+              </button>
+            )}
+
+          <button
+            type="button"
+            onClick={() => onEdit(investment)}
+            title="Edit investment"
+            style={editButtonStyle}
+          >
+            <Pencil size={16} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onDelete(investment._id)}
+            title="Delete investment"
+            style={deleteButtonStyle}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      </div>
+
+      <div style={holdingStatsStyle}>
+        <HoldingValue
+          label="Quantity"
+          value={investment.quantity.toLocaleString("en-IN")}
+        />
+
+        <HoldingValue
+          label="Avg. Buy Price"
+          value={`₹${investment.averageBuyPrice.toLocaleString(
+            "en-IN"
+          )}`}
+        />
+
+        <HoldingValue
+          label="Current Price"
+          value={`₹${investment.currentPrice.toLocaleString(
+            "en-IN"
+          )}`}
+        />
+
+        <HoldingValue
+          label="Invested"
+          value={`₹${investment.investedValue.toLocaleString(
+            "en-IN"
+          )}`}
+        />
+
+        <HoldingValue
+          label="Current Value"
+          value={`₹${investment.currentValue.toLocaleString(
+            "en-IN"
+          )}`}
+        />
+      </div>
+
+      <div
+        style={{
+          ...performanceBoxStyle,
+          background: positive
+            ? theme.colors.successSoft
+            : theme.colors.dangerSoft,
+        }}
+      >
+        <div>
+          <p style={performanceLabelStyle}>Profit / Loss</p>
+
+          <strong
+            style={{
+              ...performanceValueStyle,
+              color: positive
+                ? theme.colors.success
+                : theme.colors.danger,
+            }}
+          >
+            {positive ? "+" : "-"}₹
+            {Math.abs(investment.profitLoss).toLocaleString(
+              "en-IN"
+            )}
+          </strong>
+        </div>
+
+        <div style={returnBoxStyle}>
+          {positive ? (
+            <ArrowUpRight size={18} />
+          ) : (
+            <ArrowDownRight size={18} />
+          )}
+
+          <strong>
+            {investment.returnPercentage >= 0 ? "+" : ""}
+            {investment.returnPercentage.toFixed(2)}%
+          </strong>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function HoldingValue({
   label,
   value,
-  positive,
-}: HoldingValueProps) {
+}: {
+  label: string;
+  value: string;
+}) {
   return (
     <div>
-      <small
-        style={{
-          color: "#6b7280",
-        }}
-      >
-        {label}
-      </small>
-
-      <p
-        style={{
-          margin: "5px 0 0",
-          fontWeight: "bold",
-          color:
-            positive === undefined
-              ? "#111827"
-              : positive
-                ? "#16a34a"
-                : "#dc2626",
-        }}
-      >
-        {value}
-      </p>
+      <p style={holdingLabelStyle}>{label}</p>
+      <strong style={holdingValueStyle}>{value}</strong>
     </div>
   );
 }
 
-const headerStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: "30px",
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+const eyebrowStyle = {
+  margin: "0 0 8px",
+  color: theme.colors.primary,
+  fontSize: "10px",
+  fontWeight: 800,
+  letterSpacing: "1.5px",
+};
+
+const sectionEyebrowStyle = {
+  margin: "0 0 7px",
+  color: theme.colors.primary,
+  fontSize: "9px",
+  fontWeight: 800,
+  letterSpacing: "1.3px",
+};
+
+const descriptionStyle = {
+  margin: "7px 0 0",
+  color: theme.colors.textMuted,
+  fontSize: "12px",
 };
 
 const summaryGridStyle = {
   display: "grid",
   gridTemplateColumns:
-    "repeat(auto-fit, minmax(170px, 1fr))",
-  gap: "16px",
+    "repeat(auto-fit, minmax(200px, 1fr))",
+  gap: "18px",
   marginBottom: "24px",
 };
 
 const summaryCardStyle = {
-  background: "white",
-  padding: "20px",
-  borderRadius: "14px",
-  boxShadow: "0 4px 15px rgba(0,0,0,0.06)",
+  ...cardStyles.paddedCard,
+};
+
+const summaryIconStyle = {
+  width: "42px",
+  height: "42px",
+  borderRadius: "12px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: "18px",
+};
+
+const summaryTitleStyle = {
+  margin: 0,
+  color: theme.colors.textSecondary,
+  fontSize: "13px",
+  fontWeight: 600,
+};
+
+const summaryValueStyle = {
+  margin: "8px 0",
+  fontSize: "24px",
+  letterSpacing: "-0.6px",
+};
+
+const summarySubtitleStyle = {
+  margin: 0,
+  color: theme.colors.textMuted,
+  fontSize: "11px",
 };
 
 const contentGridStyle = {
   display: "grid",
   gridTemplateColumns:
-    "minmax(300px, 1fr) minmax(500px, 2fr)",
+    "repeat(auto-fit, minmax(320px, 1fr))",
   gap: "24px",
+  alignItems: "start",
 };
 
-const cardStyle = {
-  background: "white",
-  padding: "24px",
-  borderRadius: "14px",
-  boxShadow: "0 4px 15px rgba(0,0,0,0.06)",
+const formHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "16px",
+  marginBottom: "20px",
+};
+
+const formIconStyle = {
+  width: "40px",
+  height: "40px",
+  flexShrink: 0,
+  borderRadius: "12px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: theme.colors.primarySoft,
+  color: theme.colors.primary,
+};
+
+const formTwoColumnStyle = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit, minmax(140px, 1fr))",
+  gap: "12px",
+};
+
+const amountWrapperStyle = {
+  position: "relative" as const,
+  marginTop: "6px",
+  marginBottom: "16px",
+};
+
+const currencyStyle = {
+  position: "absolute" as const,
+  left: "14px",
+  top: "50%",
+  transform: "translateY(-50%)",
+  color: theme.colors.textSecondary,
+  fontSize: "18px",
+  fontWeight: 700,
+};
+
+const amountInputStyle = {
+  width: "100%",
+  padding: "13px 14px 13px 35px",
+  border: `1px solid ${theme.colors.border}`,
+  borderRadius: theme.radius.medium,
+  background: theme.colors.surface,
+  color: theme.colors.text,
+  fontSize: "18px",
+  fontWeight: 700,
+  outline: "none",
+  boxSizing: "border-box" as const,
+};
+
+const messageStyle = {
+  marginTop: "14px",
+  padding: "10px 12px",
+  borderRadius: theme.radius.small,
+  background: theme.colors.infoSoft,
+  color: theme.colors.info,
+  fontSize: "12px",
+  fontWeight: 600,
+};
+
+const holdingsHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "16px",
+  marginBottom: "8px",
+  flexWrap: "wrap" as const,
+};
+
+const portfolioBadgeStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "6px",
+  padding: "7px 10px",
+  borderRadius: theme.radius.pill,
+  background: theme.colors.primarySoft,
+  color: theme.colors.primary,
+  fontSize: "11px",
+  fontWeight: 700,
+};
+
+const holdingCardStyle = {
+  padding: "22px 0",
 };
 
 const holdingHeaderStyle = {
   display: "flex",
   justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "18px",
+  flexWrap: "wrap" as const,
+};
+
+const holdingIdentityStyle = {
+  display: "flex",
   alignItems: "center",
-  gap: "16px",
+  gap: "12px",
+  minWidth: 0,
+};
+
+const assetIconStyle = {
+  width: "44px",
+  height: "44px",
+  flexShrink: 0,
+  borderRadius: "13px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: theme.colors.primarySoft,
+  color: theme.colors.primary,
+};
+
+const nameRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  flexWrap: "wrap" as const,
+};
+
+const holdingNameStyle = {
+  margin: 0,
+  color: theme.colors.text,
+  fontSize: "15px",
+};
+
+const assetBadgeStyle = {
+  padding: "4px 8px",
+  borderRadius: theme.radius.pill,
+  background: theme.colors.surfaceSoft,
+  color: theme.colors.textSecondary,
+  fontSize: "9px",
+  fontWeight: 700,
+};
+
+const symbolRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  marginTop: "6px",
+  flexWrap: "wrap" as const,
+};
+
+const symbolStyle = {
+  color: theme.colors.primary,
+  fontSize: "11px",
+  fontWeight: 800,
+};
+
+const dateStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "4px",
+  color: theme.colors.textMuted,
+  fontSize: "10px",
+};
+
+const actionGroupStyle = {
+  display: "flex",
+  gap: "7px",
+  flexWrap: "wrap" as const,
+};
+
+const refreshButtonStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "6px",
+  padding: "8px 11px",
+  border: "none",
+  borderRadius: "9px",
+  background: theme.colors.successSoft,
+  color: theme.colors.success,
+  cursor: "pointer",
+  fontSize: "11px",
+  fontWeight: 700,
+};
+
+const editButtonStyle = {
+  width: "34px",
+  height: "34px",
+  border: "none",
+  borderRadius: "9px",
+  background: theme.colors.primarySoft,
+  color: theme.colors.primary,
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const deleteButtonStyle = {
+  ...editButtonStyle,
+  background: theme.colors.dangerSoft,
+  color: theme.colors.danger,
 };
 
 const holdingStatsStyle = {
   display: "grid",
   gridTemplateColumns:
     "repeat(auto-fit, minmax(110px, 1fr))",
-  gap: "16px",
-  marginTop: "20px",
+  gap: "18px",
+  marginTop: "22px",
+  padding: "18px",
+  borderRadius: theme.radius.medium,
+  background: theme.colors.surfaceSoft,
 };
 
-const buttonGroupStyle = {
+const holdingLabelStyle = {
+  margin: "0 0 6px",
+  color: theme.colors.textMuted,
+  fontSize: "10px",
+};
+
+const holdingValueStyle = {
+  color: theme.colors.text,
+  fontSize: "13px",
+};
+
+const performanceBoxStyle = {
   display: "flex",
-  gap: "8px",
-  flexWrap: "wrap" as const,
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "15px",
+  marginTop: "12px",
+  padding: "13px 15px",
+  borderRadius: theme.radius.medium,
 };
 
-const inputStyle = {
-  width: "100%",
-  padding: "11px",
-  marginTop: "6px",
-  marginBottom: "16px",
-  border: "1px solid #d1d5db",
-  borderRadius: "8px",
-  boxSizing: "border-box" as const,
+const performanceLabelStyle = {
+  margin: "0 0 4px",
+  color: theme.colors.textSecondary,
+  fontSize: "10px",
 };
 
-const mainButtonStyle = {
-  width: "100%",
-  padding: "12px",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
-  fontWeight: "bold",
+const performanceValueStyle = {
+  fontSize: "15px",
 };
 
-const cancelButtonStyle = {
-  ...mainButtonStyle,
-  marginTop: "10px",
-  background: "#e5e7eb",
-  color: "#111827",
+const returnBoxStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "5px",
+  color: "inherit",
+  fontSize: "13px",
 };
 
-const refreshButtonStyle = {
-  padding: "7px 12px",
-  background: "#dcfce7",
-  color: "#15803d",
-  border: "none",
-  borderRadius: "7px",
-  cursor: "pointer",
-  fontWeight: "bold",
+const emptyStateStyle = {
+  padding: "60px 20px",
+  textAlign: "center" as const,
 };
 
-const editButtonStyle = {
-  padding: "7px 12px",
-  background: "#dbeafe",
-  color: "#2563eb",
-  border: "none",
-  borderRadius: "7px",
-  cursor: "pointer",
-  fontWeight: "bold",
+const emptyIconStyle = {
+  width: "52px",
+  height: "52px",
+  margin: "0 auto 14px",
+  borderRadius: "15px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: theme.colors.primarySoft,
+  color: theme.colors.primary,
 };
 
-const deleteButtonStyle = {
-  padding: "7px 12px",
-  background: "#fee2e2",
-  color: "#dc2626",
-  border: "none",
-  borderRadius: "7px",
-  cursor: "pointer",
-  fontWeight: "bold",
+const emptyTitleStyle = {
+  margin: "0 0 7px",
+  color: theme.colors.text,
 };
 
-const logoutButtonStyle = {
-  padding: "10px 20px",
-  background: "#dc2626",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
-  fontWeight: "bold",
+const emptyTextStyle = {
+  margin: 0,
+  color: theme.colors.textMuted,
+  fontSize: "13px",
 };
 
 export default Investments;

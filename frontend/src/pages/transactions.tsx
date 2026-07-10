@@ -1,6 +1,28 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  CreditCard,
+  Pencil,
+  Plus,
+  ReceiptText,
+  Search,
+  Trash2,
+  WalletCards,
+  X,
+} from "lucide-react";
+
 import api from "../services/api";
 import Sidebar from "../components/Sidebar";
+
+import {
+  buttonStyles,
+  cardStyles,
+  inputStyles,
+  layoutStyles,
+  textStyles,
+  theme,
+} from "../styles/theme";
 
 type Transaction = {
   _id: string;
@@ -18,6 +40,8 @@ type TransactionsProps = {
   setActivePage: (page: string) => void;
 };
 
+type FilterType = "all" | "income" | "expense";
+
 function Transactions({
   onLogout,
   activePage,
@@ -25,14 +49,21 @@ function Transactions({
 }: TransactionsProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
-  const [type, setType] = useState<"income" | "expense">("expense");
+  const [type, setType] =
+    useState<"income" | "expense">("expense");
+
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("UPI");
 
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] =
+    useState<string | null>(null);
+
   const [message, setMessage] = useState("");
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] =
+    useState<FilterType>("all");
 
   const fetchTransactions = async () => {
     try {
@@ -79,7 +110,10 @@ function Transactions({
 
         setMessage("Transaction updated successfully!");
       } else {
-        await api.post("/api/transactions", transactionData);
+        await api.post(
+          "/api/transactions",
+          transactionData
+        );
 
         setMessage("Transaction added successfully!");
       }
@@ -104,8 +138,12 @@ function Transactions({
     setCategory(transaction.category);
     setDescription(transaction.description || "");
     setPaymentMethod(transaction.paymentMethod);
-
     setMessage("Editing transaction...");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
   const handleCancelEdit = () => {
@@ -141,120 +179,216 @@ function Transactions({
     onLogout();
   };
 
+  const totalIncome = transactions
+    .filter((item) => item.type === "income")
+    .reduce((total, item) => total + item.amount, 0);
+
+  const totalExpense = transactions
+    .filter((item) => item.type === "expense")
+    .reduce((total, item) => total + item.amount, 0);
+
+  const filteredTransactions = useMemo(() => {
+    const searchText = search.trim().toLowerCase();
+
+    return transactions.filter((transaction) => {
+      const matchesFilter =
+        filter === "all" || transaction.type === filter;
+
+      const matchesSearch =
+        !searchText ||
+        transaction.category
+          .toLowerCase()
+          .includes(searchText) ||
+        transaction.description
+          ?.toLowerCase()
+          .includes(searchText) ||
+        transaction.paymentMethod
+          .toLowerCase()
+          .includes(searchText);
+
+      return matchesFilter && matchesSearch;
+    });
+  }, [transactions, search, filter]);
+
   return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        background: "#f3f4f6",
-      }}
-    >
+    <div style={layoutStyles.page}>
       <Sidebar
         activePage={activePage}
         setActivePage={setActivePage}
       />
 
-      <main
-        style={{
-          flex: 1,
-          padding: "32px",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "30px",
-          }}
-        >
+      <main style={layoutStyles.main}>
+        <header style={layoutStyles.pageHeader}>
           <div>
-            <h1 style={{ margin: 0 }}>Transactions</h1>
+            <p style={eyebrowStyle}>
+              MONEY ACTIVITY
+            </p>
 
-            <p style={{ color: "#6b7280" }}>
-              Add, edit, and manage your income and expenses.
+            <h1 style={layoutStyles.pageTitle}>
+              Transactions
+            </h1>
+
+            <p style={layoutStyles.pageSubtitle}>
+              Record, search, and manage your income and expenses.
             </p>
           </div>
 
           <button
+            type="button"
             onClick={handleLogout}
-            style={logoutButtonStyle}
+            style={buttonStyles.danger}
           >
             Logout
           </button>
-        </div>
+        </header>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "minmax(300px, 1fr) minmax(500px, 2fr)",
-            gap: "24px",
-          }}
-        >
-          <section style={cardStyle}>
-            <h2>
-              {editingId
-                ? "Edit Transaction"
-                : "Add Transaction"}
-            </h2>
+        <section style={summaryGridStyle}>
+          <SummaryCard
+            title="Total Transactions"
+            value={transactions.length.toString()}
+            subtitle="All recorded activity"
+            icon={<ReceiptText size={20} />}
+            color={theme.colors.primary}
+            background={theme.colors.primarySoft}
+          />
+
+          <SummaryCard
+            title="Total Income"
+            value={`₹${totalIncome.toLocaleString("en-IN")}`}
+            subtitle="Money received"
+            icon={<ArrowUpRight size={20} />}
+            color={theme.colors.success}
+            background={theme.colors.successSoft}
+          />
+
+          <SummaryCard
+            title="Total Expenses"
+            value={`₹${totalExpense.toLocaleString("en-IN")}`}
+            subtitle="Money spent"
+            icon={<ArrowDownRight size={20} />}
+            color={theme.colors.danger}
+            background={theme.colors.dangerSoft}
+          />
+        </section>
+
+        <section style={contentGridStyle}>
+          <div style={cardStyles.paddedCard}>
+            <div style={formHeaderStyle}>
+              <div>
+                <p style={sectionEyebrowStyle}>
+                  {editingId ? "UPDATE" : "QUICK ADD"}
+                </p>
+
+                <h2 style={textStyles.sectionTitle}>
+                  {editingId
+                    ? "Edit Transaction"
+                    : "New Transaction"}
+                </h2>
+
+                <p style={descriptionStyle}>
+                  {editingId
+                    ? "Update the selected record."
+                    : "Add income or an expense."}
+                </p>
+              </div>
+
+              <div style={formIconStyle}>
+                {editingId ? (
+                  <Pencil size={19} />
+                ) : (
+                  <Plus size={20} />
+                )}
+              </div>
+            </div>
 
             <form onSubmit={handleSubmit}>
-              <label>Type</label>
+              <div style={typeToggleStyle}>
+                <button
+                  type="button"
+                  onClick={() => setType("expense")}
+                  style={{
+                    ...typeButtonStyle,
+                    ...(type === "expense"
+                      ? expenseActiveStyle
+                      : {}),
+                  }}
+                >
+                  Expense
+                </button>
 
-              <select
-                value={type}
-                onChange={(e) =>
-                  setType(
-                    e.target.value as "income" | "expense"
-                  )
-                }
-                style={inputStyle}
-              >
-                <option value="expense">Expense</option>
-                <option value="income">Income</option>
-              </select>
+                <button
+                  type="button"
+                  onClick={() => setType("income")}
+                  style={{
+                    ...typeButtonStyle,
+                    ...(type === "income"
+                      ? incomeActiveStyle
+                      : {}),
+                  }}
+                >
+                  Income
+                </button>
+              </div>
 
-              <label>Amount</label>
+              <label style={textStyles.label}>
+                Amount
+              </label>
 
-              <input
-                type="number"
-                min="1"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                required
-                style={inputStyle}
-              />
+              <div style={amountWrapperStyle}>
+                <span style={currencyStyle}>₹</span>
 
-              <label>Category</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={amount}
+                  onChange={(e) =>
+                    setAmount(e.target.value)
+                  }
+                  placeholder="0"
+                  required
+                  style={amountInputStyle}
+                />
+              </div>
+
+              <label style={textStyles.label}>
+                Category
+              </label>
 
               <input
                 type="text"
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) =>
+                  setCategory(e.target.value)
+                }
                 placeholder="Food, Salary, Shopping..."
                 required
-                style={inputStyle}
+                style={inputStyles.input}
               />
 
-              <label>Description</label>
+              <label style={textStyles.label}>
+                Description
+              </label>
 
               <input
                 type="text"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) =>
+                  setDescription(e.target.value)
+                }
                 placeholder="Optional description"
-                style={inputStyle}
+                style={inputStyles.input}
               />
 
-              <label>Payment Method</label>
+              <label style={textStyles.label}>
+                Payment Method
+              </label>
 
               <select
                 value={paymentMethod}
                 onChange={(e) =>
                   setPaymentMethod(e.target.value)
                 }
-                style={inputStyle}
+                style={inputStyles.select}
               >
                 <option value="UPI">UPI</option>
                 <option value="Card">Card</option>
@@ -268,10 +402,8 @@ function Transactions({
               <button
                 type="submit"
                 style={{
-                  ...mainButtonStyle,
-                  background: editingId
-                    ? "#2563eb"
-                    : "#111827",
+                  ...buttonStyles.primary,
+                  width: "100%",
                 }}
               >
                 {editingId
@@ -283,175 +415,605 @@ function Transactions({
                 <button
                   type="button"
                   onClick={handleCancelEdit}
-                  style={cancelButtonStyle}
+                  style={{
+                    ...buttonStyles.secondary,
+                    width: "100%",
+                    marginTop: "10px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "7px",
+                  }}
                 >
+                  <X size={16} />
                   Cancel Edit
                 </button>
               )}
             </form>
 
             {message && (
-              <p style={{ marginTop: "16px" }}>
+              <div style={messageStyle}>
                 {message}
-              </p>
+              </div>
             )}
-          </section>
+          </div>
 
-          <section style={cardStyle}>
-            <h2>All Transactions</h2>
+          <div style={cardStyles.paddedCard}>
+            <div style={listHeaderStyle}>
+              <div>
+                <p style={sectionEyebrowStyle}>
+                  HISTORY
+                </p>
 
-            {transactions.length === 0 ? (
-              <p>No transactions yet.</p>
-            ) : (
-              transactions.map((transaction) => (
-                <div
-                  key={transaction._id}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: "20px",
-                    padding: "16px 0",
-                    borderBottom: "1px solid #e5e7eb",
-                  }}
-                >
-                  <div>
-                    <strong>{transaction.category}</strong>
+                <h2 style={textStyles.sectionTitle}>
+                  All Transactions
+                </h2>
 
-                    <p
-                      style={{
-                        margin: "5px 0",
-                        color: "#6b7280",
-                      }}
-                    >
-                      {transaction.description ||
-                        "No description"}
-                    </p>
+                <p style={descriptionStyle}>
+                  {filteredTransactions.length} result
+                  {filteredTransactions.length === 1
+                    ? ""
+                    : "s"}
+                </p>
+              </div>
+            </div>
 
-                    <small>
-                      {transaction.paymentMethod}
-                    </small>
-                  </div>
+            <div style={toolsRowStyle}>
+              <div style={searchWrapperStyle}>
+                <Search
+                  size={17}
+                  style={searchIconStyle}
+                />
 
-                  <div
+                <input
+                  value={search}
+                  onChange={(e) =>
+                    setSearch(e.target.value)
+                  }
+                  placeholder="Search transactions..."
+                  style={searchInputStyle}
+                />
+              </div>
+
+              <div style={filterGroupStyle}>
+                {(
+                  [
+                    ["all", "All"],
+                    ["income", "Income"],
+                    ["expense", "Expenses"],
+                  ] as [FilterType, string][]
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setFilter(value)}
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
+                      ...filterButtonStyle,
+                      ...(filter === value
+                        ? activeFilterStyle
+                        : {}),
                     }}
                   >
-                    <strong
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {filteredTransactions.length === 0 ? (
+              <div style={emptyStateStyle}>
+                <div style={emptyIconStyle}>
+                  <ReceiptText size={25} />
+                </div>
+
+                <h3 style={emptyTitleStyle}>
+                  No transactions found
+                </h3>
+
+                <p style={emptyTextStyle}>
+                  Try another search or add a new transaction.
+                </p>
+              </div>
+            ) : (
+              <div>
+                {filteredTransactions.map(
+                  (transaction, index) => (
+                    <div
+                      key={transaction._id}
                       style={{
-                        color:
-                          transaction.type === "income"
-                            ? "#16a34a"
-                            : "#dc2626",
+                        ...transactionRowStyle,
+                        borderBottom:
+                          index ===
+                          filteredTransactions.length - 1
+                            ? "none"
+                            : `1px solid ${theme.colors.borderLight}`,
                       }}
                     >
-                      {transaction.type === "income"
-                        ? "+"
-                        : "-"}
-                      ₹
-                      {transaction.amount.toLocaleString(
-                        "en-IN"
-                      )}
-                    </strong>
+                      <div style={transactionMainStyle}>
+                        <div
+                          style={{
+                            ...transactionIconStyle,
+                            background:
+                              transaction.type === "income"
+                                ? theme.colors.successSoft
+                                : theme.colors.dangerSoft,
+                            color:
+                              transaction.type === "income"
+                                ? theme.colors.success
+                                : theme.colors.danger,
+                          }}
+                        >
+                          {transaction.type === "income" ? (
+                            <ArrowUpRight size={19} />
+                          ) : (
+                            <CreditCard size={19} />
+                          )}
+                        </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleEdit(transaction)}
-                      style={editButtonStyle}
-                    >
-                      Edit
-                    </button>
+                        <div>
+                          <div style={titleRowStyle}>
+                            <strong style={transactionTitleStyle}>
+                              {transaction.category}
+                            </strong>
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleDelete(transaction._id)
-                      }
-                      style={deleteButtonStyle}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))
+                            <span style={paymentBadgeStyle}>
+                              {transaction.paymentMethod}
+                            </span>
+                          </div>
+
+                          <p style={transactionDescriptionStyle}>
+                            {transaction.description ||
+                              "No description"}
+                          </p>
+
+                          <span style={dateStyle}>
+                            {formatDate(transaction.date)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={transactionRightStyle}>
+                        <strong
+                          style={{
+                            ...amountStyle,
+                            color:
+                              transaction.type === "income"
+                                ? theme.colors.success
+                                : theme.colors.danger,
+                          }}
+                        >
+                          {transaction.type === "income"
+                            ? "+"
+                            : "-"}
+                          ₹
+                          {transaction.amount.toLocaleString(
+                            "en-IN"
+                          )}
+                        </strong>
+
+                        <div style={actionsStyle}>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleEdit(transaction)
+                            }
+                            title="Edit"
+                            style={editButtonStyle}
+                          >
+                            <Pencil size={16} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleDelete(transaction._id)
+                            }
+                            title="Delete"
+                            style={deleteButtonStyle}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
             )}
-          </section>
-        </div>
+          </div>
+        </section>
       </main>
     </div>
   );
 }
 
-const cardStyle = {
-  background: "white",
-  padding: "24px",
-  borderRadius: "14px",
-  boxShadow: "0 4px 15px rgba(0,0,0,0.06)",
+function SummaryCard({
+  title,
+  value,
+  subtitle,
+  icon,
+  color,
+  background,
+}: {
+  title: string;
+  value: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  color: string;
+  background: string;
+}) {
+  return (
+    <div style={summaryCardStyle}>
+      <div
+        style={{
+          ...summaryIconStyle,
+          color,
+          background,
+        }}
+      >
+        {icon}
+      </div>
+
+      <p style={summaryTitleStyle}>{title}</p>
+
+      <h2 style={summaryValueStyle}>{value}</h2>
+
+      <p style={summarySubtitleStyle}>
+        {subtitle}
+      </p>
+    </div>
+  );
+}
+
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+const eyebrowStyle = {
+  margin: "0 0 8px",
+  color: theme.colors.primary,
+  fontSize: "10px",
+  fontWeight: 800,
+  letterSpacing: "1.5px",
 };
 
-const inputStyle = {
-  width: "100%",
-  padding: "11px",
+const summaryGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(180px, 1fr))",
+  gap: "18px",
+  marginBottom: "24px",
+};
+
+const summaryCardStyle = {
+  ...cardStyles.paddedCard,
+};
+
+const summaryIconStyle = {
+  width: "42px",
+  height: "42px",
+  borderRadius: "12px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: "18px",
+};
+
+const summaryTitleStyle = {
+  margin: 0,
+  color: theme.colors.textSecondary,
+  fontSize: "13px",
+  fontWeight: 600,
+};
+
+const summaryValueStyle = {
+  margin: "8px 0",
+  color: theme.colors.text,
+  fontSize: "25px",
+  letterSpacing: "-0.6px",
+};
+
+const summarySubtitleStyle = {
+  margin: 0,
+  color: theme.colors.textMuted,
+  fontSize: "11px",
+};
+
+const contentGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "minmax(300px, 0.75fr) minmax(520px, 1.7fr)",
+  gap: "24px",
+  alignItems: "start",
+};
+
+const formHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "16px",
+  marginBottom: "20px",
+};
+
+const sectionEyebrowStyle = {
+  margin: "0 0 7px",
+  color: theme.colors.primary,
+  fontSize: "9px",
+  fontWeight: 800,
+  letterSpacing: "1.3px",
+};
+
+const descriptionStyle = {
+  margin: "7px 0 0",
+  color: theme.colors.textMuted,
+  fontSize: "12px",
+};
+
+const formIconStyle = {
+  width: "40px",
+  height: "40px",
+  flexShrink: 0,
+  borderRadius: "12px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: theme.colors.primarySoft,
+  color: theme.colors.primary,
+};
+
+const typeToggleStyle = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "6px",
+  padding: "5px",
+  marginBottom: "18px",
+  background: theme.colors.surfaceSoft,
+  borderRadius: theme.radius.medium,
+};
+
+const typeButtonStyle = {
+  padding: "9px",
+  border: "none",
+  borderRadius: "9px",
+  background: "transparent",
+  color: theme.colors.textSecondary,
+  cursor: "pointer",
+  fontWeight: 650,
+};
+
+const expenseActiveStyle = {
+  background: theme.colors.surface,
+  color: theme.colors.danger,
+  boxShadow: theme.shadow.small,
+};
+
+const incomeActiveStyle = {
+  background: theme.colors.surface,
+  color: theme.colors.success,
+  boxShadow: theme.shadow.small,
+};
+
+const amountWrapperStyle = {
+  position: "relative" as const,
   marginTop: "6px",
   marginBottom: "16px",
-  border: "1px solid #d1d5db",
-  borderRadius: "8px",
+};
+
+const currencyStyle = {
+  position: "absolute" as const,
+  left: "14px",
+  top: "50%",
+  transform: "translateY(-50%)",
+  color: theme.colors.textSecondary,
+  fontSize: "18px",
+  fontWeight: 700,
+};
+
+const amountInputStyle = {
+  width: "100%",
+  padding: "13px 14px 13px 35px",
+  border: `1px solid ${theme.colors.border}`,
+  borderRadius: theme.radius.medium,
+  background: theme.colors.surface,
+  color: theme.colors.text,
+  fontSize: "20px",
+  fontWeight: 700,
+  outline: "none",
   boxSizing: "border-box" as const,
 };
 
-const mainButtonStyle = {
-  width: "100%",
-  padding: "12px",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
-  fontWeight: "bold",
+const messageStyle = {
+  marginTop: "14px",
+  padding: "10px 12px",
+  borderRadius: theme.radius.small,
+  background: theme.colors.infoSoft,
+  color: theme.colors.info,
+  fontSize: "12px",
+  fontWeight: 600,
 };
 
-const cancelButtonStyle = {
+const listHeaderStyle = {
+  marginBottom: "18px",
+};
+
+const toolsRowStyle = {
+  display: "flex",
+  gap: "12px",
+  marginBottom: "10px",
+  flexWrap: "wrap" as const,
+};
+
+const searchWrapperStyle = {
+  position: "relative" as const,
+  flex: 1,
+  minWidth: "220px",
+};
+
+const searchIconStyle = {
+  position: "absolute" as const,
+  left: "13px",
+  top: "50%",
+  transform: "translateY(-50%)",
+  color: theme.colors.textMuted,
+};
+
+const searchInputStyle = {
   width: "100%",
-  padding: "12px",
-  marginTop: "10px",
-  background: "#e5e7eb",
-  color: "#111827",
+  padding: "10px 12px 10px 40px",
+  border: `1px solid ${theme.colors.border}`,
+  borderRadius: theme.radius.medium,
+  background: theme.colors.surface,
+  color: theme.colors.text,
+  outline: "none",
+  boxSizing: "border-box" as const,
+};
+
+const filterGroupStyle = {
+  display: "flex",
+  gap: "5px",
+  padding: "4px",
+  background: theme.colors.surfaceSoft,
+  borderRadius: theme.radius.medium,
+};
+
+const filterButtonStyle = {
+  padding: "8px 11px",
   border: "none",
   borderRadius: "8px",
+  background: "transparent",
+  color: theme.colors.textSecondary,
   cursor: "pointer",
-  fontWeight: "bold",
+  fontSize: "12px",
+  fontWeight: 650,
+};
+
+const activeFilterStyle = {
+  background: theme.colors.surface,
+  color: theme.colors.primary,
+  boxShadow: theme.shadow.small,
+};
+
+const transactionRowStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "20px",
+  padding: "17px 0",
+};
+
+const transactionMainStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "13px",
+  minWidth: 0,
+};
+
+const transactionIconStyle = {
+  width: "42px",
+  height: "42px",
+  flexShrink: 0,
+  borderRadius: "12px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const titleRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  flexWrap: "wrap" as const,
+};
+
+const transactionTitleStyle = {
+  color: theme.colors.text,
+  fontSize: "14px",
+};
+
+const paymentBadgeStyle = {
+  padding: "3px 7px",
+  borderRadius: theme.radius.pill,
+  background: theme.colors.surfaceSoft,
+  color: theme.colors.textSecondary,
+  fontSize: "9px",
+  fontWeight: 700,
+};
+
+const transactionDescriptionStyle = {
+  margin: "4px 0",
+  color: theme.colors.textSecondary,
+  fontSize: "12px",
+};
+
+const dateStyle = {
+  color: theme.colors.textMuted,
+  fontSize: "10px",
+};
+
+const transactionRightStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "16px",
+};
+
+const amountStyle = {
+  minWidth: "105px",
+  textAlign: "right" as const,
+  fontSize: "14px",
+};
+
+const actionsStyle = {
+  display: "flex",
+  gap: "7px",
 };
 
 const editButtonStyle = {
-  padding: "7px 12px",
-  background: "#dbeafe",
-  color: "#2563eb",
+  width: "34px",
+  height: "34px",
   border: "none",
-  borderRadius: "7px",
+  borderRadius: "9px",
+  background: theme.colors.primarySoft,
+  color: theme.colors.primary,
   cursor: "pointer",
-  fontWeight: "bold",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
 
 const deleteButtonStyle = {
-  padding: "7px 12px",
-  background: "#fee2e2",
-  color: "#dc2626",
-  border: "none",
-  borderRadius: "7px",
-  cursor: "pointer",
-  fontWeight: "bold",
+  ...editButtonStyle,
+  background: theme.colors.dangerSoft,
+  color: theme.colors.danger,
 };
 
-const logoutButtonStyle = {
-  padding: "10px 20px",
-  background: "#dc2626",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
-  fontWeight: "bold",
+const emptyStateStyle = {
+  padding: "60px 20px",
+  textAlign: "center" as const,
+};
+
+const emptyIconStyle = {
+  width: "52px",
+  height: "52px",
+  margin: "0 auto 14px",
+  borderRadius: "15px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: theme.colors.primarySoft,
+  color: theme.colors.primary,
+};
+
+const emptyTitleStyle = {
+  margin: "0 0 7px",
+  color: theme.colors.text,
+};
+
+const emptyTextStyle = {
+  margin: 0,
+  color: theme.colors.textMuted,
+  fontSize: "13px",
 };
 
 export default Transactions;

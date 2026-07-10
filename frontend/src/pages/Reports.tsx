@@ -1,5 +1,18 @@
 import { useEffect, useState } from "react";
 import {
+  ArrowDownRight,
+  ArrowUpRight,
+  BarChart3,
+  CalendarDays,
+  CircleDollarSign,
+  PiggyBank,
+  ReceiptText,
+  Target,
+  TrendingUp,
+  WalletCards,
+} from "lucide-react";
+
+import {
   BarChart,
   Bar,
   XAxis,
@@ -15,6 +28,14 @@ import {
 
 import api from "../services/api";
 import Sidebar from "../components/Sidebar";
+
+import {
+  buttonStyles,
+  cardStyles,
+  layoutStyles,
+  textStyles,
+  theme,
+} from "../styles/theme";
 
 type MonthlyData = {
   month: string;
@@ -40,7 +61,6 @@ type AnalyticsData = {
 
   monthlyData: MonthlyData[];
   categoryBreakdown: CategoryData[];
-
   highestExpenseCategory: CategoryData | null;
 };
 
@@ -107,534 +127,921 @@ function Reports({
     onLogout();
   };
 
-  if (loading) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          minHeight: "100vh",
-          background: "#f3f4f6",
-        }}
-      >
-        <Sidebar
-          activePage={activePage}
-          setActivePage={setActivePage}
-        />
-
-        <main style={{ flex: 1, padding: "32px" }}>
-          <h2>Loading reports...</h2>
-        </main>
-      </div>
-    );
-  }
+  const financialStatus =
+    !analytics
+      ? ""
+      : analytics.summary.savingsRate >= 20
+        ? "Strong Savings"
+        : analytics.summary.savingsRate > 0
+          ? "Positive Savings"
+          : "Needs Attention";
 
   return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        background: "#f3f4f6",
-      }}
-    >
+    <div style={layoutStyles.page}>
       <Sidebar
         activePage={activePage}
         setActivePage={setActivePage}
       />
 
-      <main style={{ flex: 1, padding: "32px" }}>
-        <div style={headerStyle}>
+      <main style={layoutStyles.main}>
+        <header style={layoutStyles.pageHeader}>
           <div>
-            <h1 style={{ margin: 0 }}>
+            <p style={eyebrowStyle}>
+              FINANCIAL ANALYTICS
+            </p>
+
+            <h1 style={layoutStyles.pageTitle}>
               Reports & Analytics
             </h1>
 
-            <p style={{ color: "#6b7280" }}>
+            <p style={layoutStyles.pageSubtitle}>
               Understand your income, spending, and savings.
             </p>
           </div>
 
-          <div style={headerActionsStyle}>
-            <select
-              value={year}
-              onChange={(e) =>
-                setYear(Number(e.target.value))
-              }
-              style={yearSelectStyle}
-            >
-              <option value={currentYear}>
-                {currentYear}
-              </option>
+          <button
+            type="button"
+            onClick={handleLogout}
+            style={buttonStyles.danger}
+          >
+            Logout
+          </button>
+        </header>
 
-              <option value={currentYear - 1}>
-                {currentYear - 1}
-              </option>
-
-              <option value={currentYear - 2}>
-                {currentYear - 2}
-              </option>
-            </select>
-
-            <button
-              onClick={handleLogout}
-              style={logoutButtonStyle}
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-
-        {message && (
-          <div style={errorStyle}>
-            {message}
-          </div>
-        )}
-
-        {analytics && (
-          <>
-            <div style={summaryGridStyle}>
-              <SummaryCard
-                title="Total Income"
-                value={`₹${analytics.summary.totalIncome.toLocaleString(
-                  "en-IN"
-                )}`}
-              />
-
-              <SummaryCard
-                title="Total Expenses"
-                value={`₹${analytics.summary.totalExpense.toLocaleString(
-                  "en-IN"
-                )}`}
-              />
-
-              <SummaryCard
-                title="Total Savings"
-                value={`₹${analytics.summary.savings.toLocaleString(
-                  "en-IN"
-                )}`}
-                positive={analytics.summary.savings >= 0}
-              />
-
-              <SummaryCard
-                title="Savings Rate"
-                value={`${analytics.summary.savingsRate.toFixed(
-                  2
-                )}%`}
-                positive={
-                  analytics.summary.savingsRate >= 0
-                }
-              />
-
-              <SummaryCard
-                title="Transactions"
-                value={analytics.summary.transactionCount.toString()}
-              />
+        <section style={periodCardStyle}>
+          <div style={periodHeadingStyle}>
+            <div style={periodIconStyle}>
+              <CalendarDays size={20} />
             </div>
 
-            <div style={chartsGridStyle}>
-              <section style={chartCardStyle}>
-                <div style={chartHeaderStyle}>
+            <div>
+              <h2 style={textStyles.sectionTitle}>
+                Report Period
+              </h2>
+
+              <p style={descriptionStyle}>
+                Viewing financial analytics for {year}
+              </p>
+            </div>
+          </div>
+
+          <select
+            value={year}
+            onChange={(e) =>
+              setYear(Number(e.target.value))
+            }
+            style={yearSelectStyle}
+          >
+            <option value={currentYear}>
+              {currentYear}
+            </option>
+
+            <option value={currentYear - 1}>
+              {currentYear - 1}
+            </option>
+
+            <option value={currentYear - 2}>
+              {currentYear - 2}
+            </option>
+          </select>
+        </section>
+
+        {message && (
+          <div style={errorStyle}>{message}</div>
+        )}
+
+        {loading ? (
+          <div style={loadingCardStyle}>
+            <div style={loadingIconStyle}>
+              <BarChart3 size={25} />
+            </div>
+
+            <h3 style={loadingTitleStyle}>
+              Loading your report
+            </h3>
+
+            <p style={loadingTextStyle}>
+              Analysing financial activity for {year}...
+            </p>
+          </div>
+        ) : (
+          analytics && (
+            <>
+              <section style={summaryGridStyle}>
+                <SummaryCard
+                  title="Total Income"
+                  value={`₹${analytics.summary.totalIncome.toLocaleString(
+                    "en-IN"
+                  )}`}
+                  subtitle="Money received this year"
+                  icon={<ArrowUpRight size={20} />}
+                  color={theme.colors.success}
+                  background={theme.colors.successSoft}
+                />
+
+                <SummaryCard
+                  title="Total Expenses"
+                  value={`₹${analytics.summary.totalExpense.toLocaleString(
+                    "en-IN"
+                  )}`}
+                  subtitle="Money spent this year"
+                  icon={<ArrowDownRight size={20} />}
+                  color={theme.colors.danger}
+                  background={theme.colors.dangerSoft}
+                />
+
+                <SummaryCard
+                  title="Total Savings"
+                  value={`${
+                    analytics.summary.savings >= 0 ? "" : "-"
+                  }₹${Math.abs(
+                    analytics.summary.savings
+                  ).toLocaleString("en-IN")}`}
+                  subtitle={
+                    analytics.summary.savings >= 0
+                      ? "Income remaining after expenses"
+                      : "Expenses exceeded income"
+                  }
+                  icon={<PiggyBank size={20} />}
+                  color={
+                    analytics.summary.savings >= 0
+                      ? theme.colors.success
+                      : theme.colors.danger
+                  }
+                  background={
+                    analytics.summary.savings >= 0
+                      ? theme.colors.successSoft
+                      : theme.colors.dangerSoft
+                  }
+                />
+
+                <SummaryCard
+                  title="Savings Rate"
+                  value={`${analytics.summary.savingsRate.toFixed(
+                    1
+                  )}%`}
+                  subtitle={financialStatus}
+                  icon={<TrendingUp size={20} />}
+                  color={
+                    analytics.summary.savingsRate >= 20
+                      ? theme.colors.success
+                      : analytics.summary.savingsRate > 0
+                        ? theme.colors.warning
+                        : theme.colors.danger
+                  }
+                  background={
+                    analytics.summary.savingsRate >= 20
+                      ? theme.colors.successSoft
+                      : analytics.summary.savingsRate > 0
+                        ? theme.colors.warningSoft
+                        : theme.colors.dangerSoft
+                  }
+                />
+
+                <SummaryCard
+                  title="Transactions"
+                  value={analytics.summary.transactionCount.toString()}
+                  subtitle="Total recorded activity"
+                  icon={<ReceiptText size={20} />}
+                  color={theme.colors.primary}
+                  background={theme.colors.primarySoft}
+                />
+              </section>
+
+              <section style={chartsGridStyle}>
+                <div style={cardStyles.paddedCard}>
+                  <div style={chartHeaderStyle}>
+                    <div>
+                      <p style={sectionEyebrowStyle}>
+                        CASH FLOW
+                      </p>
+
+                      <h2 style={textStyles.sectionTitle}>
+                        Income vs Expenses
+                      </h2>
+
+                      <p style={descriptionStyle}>
+                        Monthly financial activity for {year}
+                      </p>
+                    </div>
+
+                    <div style={chartIconStyle}>
+                      <BarChart3 size={20} />
+                    </div>
+                  </div>
+
+                  <div style={barChartWrapperStyle}>
+                    <ResponsiveContainer
+                      width="100%"
+                      height="100%"
+                    >
+                      <BarChart
+                        data={analytics.monthlyData}
+                        margin={{
+                          top: 20,
+                          right: 10,
+                          left: 0,
+                          bottom: 5,
+                        }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          vertical={false}
+                          stroke={theme.colors.borderLight}
+                        />
+
+                        <XAxis
+                          dataKey="month"
+                          tick={{
+                            fontSize: 11,
+                            fill: theme.colors.textMuted,
+                          }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+
+                        <YAxis
+                          tick={{
+                            fontSize: 10,
+                            fill: theme.colors.textMuted,
+                          }}
+                          axisLine={false}
+                          tickLine={false}
+                          width={55}
+                        />
+
+                        <Tooltip
+                          formatter={(value) =>
+                            `₹${Number(
+                              value
+                            ).toLocaleString("en-IN")}`
+                          }
+                          contentStyle={{
+                            borderRadius: "10px",
+                            border: `1px solid ${theme.colors.border}`,
+                            boxShadow: theme.shadow.small,
+                            fontSize: "12px",
+                          }}
+                        />
+
+                        <Legend
+                          wrapperStyle={{
+                            fontSize: "11px",
+                            paddingTop: "14px",
+                          }}
+                        />
+
+                        <Bar
+                          dataKey="income"
+                          name="Income"
+                          fill={theme.colors.success}
+                          radius={[6, 6, 0, 0]}
+                        />
+
+                        <Bar
+                          dataKey="expense"
+                          name="Expenses"
+                          fill={theme.colors.danger}
+                          radius={[6, 6, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div style={cardStyles.paddedCard}>
+                  <div style={chartHeaderStyle}>
+                    <div>
+                      <p style={sectionEyebrowStyle}>
+                        SPENDING MIX
+                      </p>
+
+                      <h2 style={textStyles.sectionTitle}>
+                        Expense Categories
+                      </h2>
+
+                      <p style={descriptionStyle}>
+                        Where your money was spent
+                      </p>
+                    </div>
+
+                    <div style={chartIconStyle}>
+                      <WalletCards size={20} />
+                    </div>
+                  </div>
+
+                  {analytics.categoryBreakdown.length ===
+                  0 ? (
+                    <div style={emptyChartStyle}>
+                      <div style={emptyIconStyle}>
+                        <WalletCards size={24} />
+                      </div>
+
+                      <h3 style={emptyTitleStyle}>
+                        No expense data
+                      </h3>
+
+                      <p style={emptyTextStyle}>
+                        Add expenses to see your category breakdown.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={pieChartWrapperStyle}>
+                        <ResponsiveContainer
+                          width="100%"
+                          height="100%"
+                        >
+                          <PieChart>
+                            <Pie
+                              data={
+                                analytics.categoryBreakdown
+                              }
+                              dataKey="amount"
+                              nameKey="category"
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={55}
+                              outerRadius={90}
+                              paddingAngle={3}
+                            >
+                              {analytics.categoryBreakdown.map(
+                                (_, index) => (
+                                  <Cell
+                                    key={`cell-${index}`}
+                                    fill={
+                                      PIE_COLORS[
+                                        index %
+                                          PIE_COLORS.length
+                                      ]
+                                    }
+                                  />
+                                )
+                              )}
+                            </Pie>
+
+                            <Tooltip
+                              formatter={(value) =>
+                                `₹${Number(
+                                  value
+                                ).toLocaleString("en-IN")}`
+                              }
+                              contentStyle={{
+                                borderRadius: "10px",
+                                border: `1px solid ${theme.colors.border}`,
+                                fontSize: "12px",
+                              }}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      <div style={categoryListStyle}>
+                        {analytics.categoryBreakdown.map(
+                          (item, index) => {
+                            const totalExpenses =
+                              analytics.summary.totalExpense;
+
+                            const percentage =
+                              totalExpenses > 0
+                                ? (item.amount /
+                                    totalExpenses) *
+                                  100
+                                : 0;
+
+                            return (
+                              <div
+                                key={item.category}
+                                style={categoryRowStyle}
+                              >
+                                <div
+                                  style={categoryIdentityStyle}
+                                >
+                                  <span
+                                    style={{
+                                      ...categoryDotStyle,
+                                      background:
+                                        PIE_COLORS[
+                                          index %
+                                            PIE_COLORS.length
+                                        ],
+                                    }}
+                                  />
+
+                                  <div>
+                                    <strong
+                                      style={categoryNameStyle}
+                                    >
+                                      {item.category}
+                                    </strong>
+
+                                    <p
+                                      style={
+                                        categoryPercentageStyle
+                                      }
+                                    >
+                                      {percentage.toFixed(1)}% of
+                                      expenses
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <strong
+                                  style={categoryAmountStyle}
+                                >
+                                  ₹
+                                  {item.amount.toLocaleString(
+                                    "en-IN"
+                                  )}
+                                </strong>
+                              </div>
+                            );
+                          }
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </section>
+
+              <section style={insightsSectionStyle}>
+                <div style={insightsHeadingStyle}>
                   <div>
-                    <h2 style={{ margin: 0 }}>
-                      Income vs Expenses
+                    <p style={sectionEyebrowStyle}>
+                      KEY INSIGHTS
+                    </p>
+
+                    <h2 style={textStyles.sectionTitle}>
+                      Financial Snapshot
                     </h2>
 
-                    <p style={chartDescriptionStyle}>
-                      Monthly financial activity for {year}
+                    <p style={descriptionStyle}>
+                      Quick insights based on your {year} activity
                     </p>
                   </div>
                 </div>
 
-                <div style={{ width: "100%", height: 360 }}>
-                  <ResponsiveContainer>
-                    <BarChart
-                      data={analytics.monthlyData}
-                      margin={{
-                        top: 20,
-                        right: 20,
-                        left: 10,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                      />
+                <div style={insightsGridStyle}>
+                  <InsightCard
+                    title="Highest Spending Category"
+                    headline={
+                      analytics.highestExpenseCategory
+                        ? analytics.highestExpenseCategory
+                            .category
+                        : "No expenses"
+                    }
+                    value={
+                      analytics.highestExpenseCategory
+                        ? `₹${analytics.highestExpenseCategory.amount.toLocaleString(
+                            "en-IN"
+                          )}`
+                        : "₹0"
+                    }
+                    icon={<Target size={20} />}
+                    color={theme.colors.warning}
+                    background={theme.colors.warningSoft}
+                  />
 
-                      <XAxis dataKey="month" />
+                  <InsightCard
+                    title="Financial Status"
+                    headline={financialStatus}
+                    value={`${analytics.summary.savingsRate.toFixed(
+                      1
+                    )}% savings rate`}
+                    icon={<TrendingUp size={20} />}
+                    color={
+                      analytics.summary.savingsRate >= 20
+                        ? theme.colors.success
+                        : analytics.summary.savingsRate > 0
+                          ? theme.colors.warning
+                          : theme.colors.danger
+                    }
+                    background={
+                      analytics.summary.savingsRate >= 20
+                        ? theme.colors.successSoft
+                        : analytics.summary.savingsRate > 0
+                          ? theme.colors.warningSoft
+                          : theme.colors.dangerSoft
+                    }
+                  />
 
-                      <YAxis />
-
-                      <Tooltip
-                        formatter={(value) =>
-                          `₹${Number(
-                            value
-                          ).toLocaleString("en-IN")}`
-                        }
-                      />
-
-                      <Legend />
-
-                      <Bar
-                        dataKey="income"
-                        name="Income"
-                        fill="#16a34a"
-                        radius={[6, 6, 0, 0]}
-                      />
-
-                      <Bar
-                        dataKey="expense"
-                        name="Expense"
-                        fill="#dc2626"
-                        radius={[6, 6, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <InsightCard
+                    title="Net Savings"
+                    headline={
+                      analytics.summary.savings >= 0
+                        ? "Surplus"
+                        : "Deficit"
+                    }
+                    value={`₹${Math.abs(
+                      analytics.summary.savings
+                    ).toLocaleString("en-IN")}`}
+                    icon={<CircleDollarSign size={20} />}
+                    color={
+                      analytics.summary.savings >= 0
+                        ? theme.colors.success
+                        : theme.colors.danger
+                    }
+                    background={
+                      analytics.summary.savings >= 0
+                        ? theme.colors.successSoft
+                        : theme.colors.dangerSoft
+                    }
+                  />
                 </div>
               </section>
-
-              <section style={chartCardStyle}>
-                <h2 style={{ marginTop: 0 }}>
-                  Expense Categories
-                </h2>
-
-                <p style={chartDescriptionStyle}>
-                  Where your money was spent
-                </p>
-
-                {analytics.categoryBreakdown.length ===
-                0 ? (
-                  <div style={emptyChartStyle}>
-                    No expense data for {year}
-                  </div>
-                ) : (
-                  <>
-                    <div
-                      style={{
-                        width: "100%",
-                        height: 280,
-                      }}
-                    >
-                      <ResponsiveContainer>
-                        <PieChart>
-                          <Pie
-                            data={
-                              analytics.categoryBreakdown
-                            }
-                            dataKey="amount"
-                            nameKey="category"
-                            cx="50%"
-                            cy="50%"
-                            outerRadius={100}
-                            label={({ name }) => name}
-                          >
-                            {analytics.categoryBreakdown.map(
-                              (_, index) => (
-                                <Cell
-                                  key={`cell-${index}`}
-                                  fill={
-                                    PIE_COLORS[
-                                      index %
-                                        PIE_COLORS.length
-                                    ]
-                                  }
-                                />
-                              )
-                            )}
-                          </Pie>
-
-                          <Tooltip
-                            formatter={(value) =>
-                              `₹${Number(
-                                value
-                              ).toLocaleString("en-IN")}`
-                            }
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-
-                    <div style={categoryListStyle}>
-                      {analytics.categoryBreakdown.map(
-                        (item, index) => (
-                          <div
-                            key={item.category}
-                            style={categoryRowStyle}
-                          >
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "10px",
-                              }}
-                            >
-                              <span
-                                style={{
-                                  width: "12px",
-                                  height: "12px",
-                                  borderRadius: "50%",
-                                  background:
-                                    PIE_COLORS[
-                                      index %
-                                        PIE_COLORS.length
-                                    ],
-                                }}
-                              />
-
-                              <span>
-                                {item.category}
-                              </span>
-                            </div>
-
-                            <strong>
-                              ₹
-                              {item.amount.toLocaleString(
-                                "en-IN"
-                              )}
-                            </strong>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  </>
-                )}
-              </section>
-            </div>
-
-            <div style={insightsGridStyle}>
-              <section style={insightCardStyle}>
-                <p style={insightLabelStyle}>
-                  Highest Spending Category
-                </p>
-
-                <h2>
-                  {analytics.highestExpenseCategory
-                    ? analytics.highestExpenseCategory
-                        .category
-                    : "No expenses"}
-                </h2>
-
-                <p style={insightValueStyle}>
-                  {analytics.highestExpenseCategory
-                    ? `₹${analytics.highestExpenseCategory.amount.toLocaleString(
-                        "en-IN"
-                      )}`
-                    : "₹0"}
-                </p>
-              </section>
-
-              <section style={insightCardStyle}>
-                <p style={insightLabelStyle}>
-                  Financial Status
-                </p>
-
-                <h2>
-                  {analytics.summary.savingsRate >= 20
-                    ? "Strong Savings"
-                    : analytics.summary.savingsRate > 0
-                      ? "Positive Savings"
-                      : "Needs Attention"}
-                </h2>
-
-                <p style={insightValueStyle}>
-                  {analytics.summary.savingsRate.toFixed(
-                    2
-                  )}
-                  % savings rate
-                </p>
-              </section>
-
-              <section style={insightCardStyle}>
-                <p style={insightLabelStyle}>
-                  Net Savings
-                </p>
-
-                <h2>
-                  {analytics.summary.savings >= 0
-                    ? "Surplus"
-                    : "Deficit"}
-                </h2>
-
-                <p style={insightValueStyle}>
-                  ₹
-                  {Math.abs(
-                    analytics.summary.savings
-                  ).toLocaleString("en-IN")}
-                </p>
-              </section>
-            </div>
-          </>
+            </>
+          )
         )}
       </main>
     </div>
   );
 }
 
-type SummaryCardProps = {
-  title: string;
-  value: string;
-  positive?: boolean;
-};
-
 function SummaryCard({
   title,
   value,
-  positive,
-}: SummaryCardProps) {
+  subtitle,
+  icon,
+  color,
+  background,
+}: {
+  title: string;
+  value: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  color: string;
+  background: string;
+}) {
   return (
     <div style={summaryCardStyle}>
-      <p style={summaryLabelStyle}>
-        {title}
-      </p>
-
-      <h2
+      <div
         style={{
-          marginBottom: 0,
-          color:
-            positive === undefined
-              ? "#111827"
-              : positive
-                ? "#16a34a"
-                : "#dc2626",
+          ...summaryIconStyle,
+          color,
+          background,
         }}
       >
-        {value}
-      </h2>
+        {icon}
+      </div>
+
+      <p style={summaryTitleStyle}>{title}</p>
+
+      <h2 style={summaryValueStyle}>{value}</h2>
+
+      <p style={summarySubtitleStyle}>{subtitle}</p>
     </div>
   );
 }
 
-const headerStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "20px",
-  marginBottom: "30px",
+function InsightCard({
+  title,
+  headline,
+  value,
+  icon,
+  color,
+  background,
+}: {
+  title: string;
+  headline: string;
+  value: string;
+  icon: React.ReactNode;
+  color: string;
+  background: string;
+}) {
+  return (
+    <div style={insightCardStyle}>
+      <div
+        style={{
+          ...insightIconStyle,
+          color,
+          background,
+        }}
+      >
+        {icon}
+      </div>
+
+      <p style={insightLabelStyle}>{title}</p>
+
+      <h3 style={insightHeadlineStyle}>
+        {headline}
+      </h3>
+
+      <p style={{ ...insightValueStyle, color }}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+const eyebrowStyle = {
+  margin: "0 0 8px",
+  color: theme.colors.primary,
+  fontSize: "10px",
+  fontWeight: 800,
+  letterSpacing: "1.5px",
 };
 
-const headerActionsStyle = {
+const sectionEyebrowStyle = {
+  margin: "0 0 7px",
+  color: theme.colors.primary,
+  fontSize: "9px",
+  fontWeight: 800,
+  letterSpacing: "1.3px",
+};
+
+const descriptionStyle = {
+  margin: "7px 0 0",
+  color: theme.colors.textMuted,
+  fontSize: "12px",
+};
+
+const periodCardStyle = {
+  ...cardStyles.paddedCard,
   display: "flex",
-  gap: "12px",
   alignItems: "center",
+  justifyContent: "space-between",
+  gap: "20px",
+  marginBottom: "18px",
+  flexWrap: "wrap" as const,
+};
+
+const periodHeadingStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "12px",
+};
+
+const periodIconStyle = {
+  width: "42px",
+  height: "42px",
+  flexShrink: 0,
+  borderRadius: "12px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: theme.colors.primarySoft,
+  color: theme.colors.primary,
 };
 
 const yearSelectStyle = {
-  padding: "10px 14px",
-  border: "1px solid #d1d5db",
-  borderRadius: "8px",
-  background: "white",
+  minWidth: "120px",
+  padding: "10px 35px 10px 12px",
+  border: `1px solid ${theme.colors.border}`,
+  borderRadius: theme.radius.medium,
+  background: theme.colors.surface,
+  color: theme.colors.text,
+  outline: "none",
   cursor: "pointer",
 };
 
 const summaryGridStyle = {
   display: "grid",
   gridTemplateColumns:
-    "repeat(auto-fit, minmax(170px, 1fr))",
-  gap: "16px",
+    "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: "18px",
   marginBottom: "24px",
 };
 
 const summaryCardStyle = {
-  background: "white",
-  padding: "20px",
-  borderRadius: "14px",
-  boxShadow: "0 4px 15px rgba(0,0,0,0.06)",
+  ...cardStyles.paddedCard,
+  minWidth: 0,
 };
 
-const summaryLabelStyle = {
+const summaryIconStyle = {
+  width: "42px",
+  height: "42px",
+  borderRadius: "12px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: "18px",
+};
+
+const summaryTitleStyle = {
   margin: 0,
-  color: "#6b7280",
-  fontSize: "14px",
+  color: theme.colors.textSecondary,
+  fontSize: "13px",
+  fontWeight: 600,
+};
+
+const summaryValueStyle = {
+  margin: "8px 0",
+  color: theme.colors.text,
+  fontSize: "23px",
+  letterSpacing: "-0.6px",
+};
+
+const summarySubtitleStyle = {
+  margin: 0,
+  color: theme.colors.textMuted,
+  fontSize: "11px",
 };
 
 const chartsGridStyle = {
   display: "grid",
   gridTemplateColumns:
-    "minmax(0, 2fr) minmax(320px, 1fr)",
+    "repeat(auto-fit, minmax(320px, 1fr))",
   gap: "24px",
   marginBottom: "24px",
-};
-
-const chartCardStyle = {
-  background: "white",
-  padding: "24px",
-  borderRadius: "14px",
-  boxShadow: "0 4px 15px rgba(0,0,0,0.06)",
-  minWidth: 0,
+  alignItems: "start",
 };
 
 const chartHeaderStyle = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "center",
+  alignItems: "flex-start",
+  gap: "16px",
+  marginBottom: "10px",
 };
 
-const chartDescriptionStyle = {
-  color: "#6b7280",
-  marginTop: "8px",
+const chartIconStyle = {
+  width: "40px",
+  height: "40px",
+  flexShrink: 0,
+  borderRadius: "12px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: theme.colors.primarySoft,
+  color: theme.colors.primary,
+};
+
+const barChartWrapperStyle = {
+  width: "100%",
+  height: "350px",
+  minWidth: 0,
+  marginTop: "10px",
+};
+
+const pieChartWrapperStyle = {
+  width: "100%",
+  height: "250px",
+  minWidth: 0,
 };
 
 const categoryListStyle = {
   display: "flex",
   flexDirection: "column" as const,
-  gap: "12px",
 };
 
 const categoryRowStyle = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  paddingTop: "10px",
-  borderTop: "1px solid #f3f4f6",
+  gap: "15px",
+  padding: "12px 0",
+  borderTop: `1px solid ${theme.colors.borderLight}`,
+};
+
+const categoryIdentityStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  minWidth: 0,
+};
+
+const categoryDotStyle = {
+  width: "10px",
+  height: "10px",
+  flexShrink: 0,
+  borderRadius: "50%",
+};
+
+const categoryNameStyle = {
+  color: theme.colors.text,
+  fontSize: "12px",
+};
+
+const categoryPercentageStyle = {
+  margin: "3px 0 0",
+  color: theme.colors.textMuted,
+  fontSize: "9px",
+};
+
+const categoryAmountStyle = {
+  color: theme.colors.text,
+  fontSize: "12px",
+  whiteSpace: "nowrap" as const,
+};
+
+const insightsSectionStyle = {
+  ...cardStyles.paddedCard,
+};
+
+const insightsHeadingStyle = {
+  marginBottom: "18px",
 };
 
 const insightsGridStyle = {
   display: "grid",
   gridTemplateColumns:
-    "repeat(auto-fit, minmax(220px, 1fr))",
-  gap: "16px",
+    "repeat(auto-fit, minmax(200px, 1fr))",
+  gap: "14px",
 };
 
 const insightCardStyle = {
-  background: "white",
-  padding: "22px",
-  borderRadius: "14px",
-  boxShadow: "0 4px 15px rgba(0,0,0,0.06)",
+  padding: "18px",
+  borderRadius: theme.radius.medium,
+  background: theme.colors.surfaceSoft,
+};
+
+const insightIconStyle = {
+  width: "40px",
+  height: "40px",
+  borderRadius: "11px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: "15px",
 };
 
 const insightLabelStyle = {
   margin: 0,
-  color: "#6b7280",
-  fontSize: "14px",
+  color: theme.colors.textMuted,
+  fontSize: "10px",
+};
+
+const insightHeadlineStyle = {
+  margin: "7px 0 5px",
+  color: theme.colors.text,
+  fontSize: "15px",
 };
 
 const insightValueStyle = {
-  color: "#6b7280",
-  marginBottom: 0,
+  margin: 0,
+  fontSize: "12px",
+  fontWeight: 700,
+};
+
+const loadingCardStyle = {
+  ...cardStyles.paddedCard,
+  padding: "70px 20px",
+  textAlign: "center" as const,
+};
+
+const loadingIconStyle = {
+  width: "54px",
+  height: "54px",
+  margin: "0 auto 15px",
+  borderRadius: "15px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: theme.colors.primarySoft,
+  color: theme.colors.primary,
+};
+
+const loadingTitleStyle = {
+  margin: "0 0 7px",
+  color: theme.colors.text,
+};
+
+const loadingTextStyle = {
+  margin: 0,
+  color: theme.colors.textMuted,
+  fontSize: "12px",
 };
 
 const emptyChartStyle = {
-  height: "280px",
+  minHeight: "330px",
   display: "flex",
+  flexDirection: "column" as const,
   justifyContent: "center",
   alignItems: "center",
-  color: "#6b7280",
+  textAlign: "center" as const,
+};
+
+const emptyIconStyle = {
+  width: "52px",
+  height: "52px",
+  marginBottom: "14px",
+  borderRadius: "15px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: theme.colors.primarySoft,
+  color: theme.colors.primary,
+};
+
+const emptyTitleStyle = {
+  margin: "0 0 7px",
+  color: theme.colors.text,
+};
+
+const emptyTextStyle = {
+  margin: 0,
+  color: theme.colors.textMuted,
+  fontSize: "12px",
 };
 
 const errorStyle = {
-  background: "#fee2e2",
-  color: "#b91c1c",
-  padding: "12px",
-  borderRadius: "8px",
+  padding: "12px 14px",
   marginBottom: "20px",
-};
-
-const logoutButtonStyle = {
-  padding: "10px 20px",
-  background: "#dc2626",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
-  fontWeight: "bold",
+  borderRadius: theme.radius.small,
+  background: theme.colors.dangerSoft,
+  color: theme.colors.danger,
+  fontSize: "12px",
+  fontWeight: 600,
 };
 
 export default Reports;
