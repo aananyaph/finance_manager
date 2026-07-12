@@ -69,7 +69,7 @@ function Dashboard({
 
   const fetchTransactions = async () => {
     try {
-      const response = await api.get("/api/transactions");
+      const response = await api.get("/transactions");
       setTransactions(response.data);
     } catch (error) {
       console.error(error);
@@ -106,14 +106,14 @@ function Dashboard({
     try {
       if (editingId) {
         await api.put(
-          `/api/transactions/${editingId}`,
+          `/transactions/${editingId}`,
           transactionData
         );
 
         setMessage("Transaction updated successfully!");
       } else {
         await api.post(
-          "/api/transactions",
+          "/transactions",
           transactionData
         );
 
@@ -161,7 +161,7 @@ function Dashboard({
     if (!confirmed) return;
 
     try {
-      await api.delete(`/api/transactions/${id}`);
+      await api.delete(`/transactions/${id}`);
 
       if (editingId === id) {
         resetForm();
@@ -175,14 +175,25 @@ function Dashboard({
     }
   };
 
-  const totalIncome = transactions
-    .filter((item) => item.type === "income")
-    .reduce((total, item) => total + item.amount, 0);
+ const totalIncome = transactions
+  .filter(
+    (item) =>
+      item.type.toLowerCase() === "income"
+  )
+  .reduce(
+    (total, item) => total + Number(item.amount),
+    0
+  );
 
-  const totalExpense = transactions
-    .filter((item) => item.type === "expense")
-    .reduce((total, item) => total + item.amount, 0);
-
+const totalExpense = transactions
+  .filter(
+    (item) =>
+      item.type.toLowerCase() === "expense"
+  )
+  .reduce(
+    (total, item) => total + Number(item.amount),
+    0
+  );
   const balance = totalIncome - totalExpense;
 
   const recentTransactions = transactions.slice(0, 5);

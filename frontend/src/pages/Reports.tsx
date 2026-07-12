@@ -101,7 +101,7 @@ function Reports({
       setMessage("");
 
       const response = await api.get(
-        `/api/analytics?year=${year}`
+        `/analytics?year=${year}`
       );
 
       setAnalytics(response.data);

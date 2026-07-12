@@ -72,7 +72,7 @@ function Goals({
 
   const fetchGoals = async () => {
     try {
-      const response = await api.get("/api/goals");
+      const response = await api.get("/goals");
       setGoals(response.data);
     } catch (error) {
       console.error(error);
@@ -108,10 +108,10 @@ function Goals({
 
     try {
       if (editingId) {
-        await api.put(`/api/goals/${editingId}`, goalData);
+        await api.put(`/goals/${editingId}`, goalData);
         setMessage("Goal updated successfully!");
       } else {
-        await api.post("/api/goals", goalData);
+        await api.post("/goals", goalData);
         setMessage("Goal created successfully!");
       }
 
@@ -150,7 +150,7 @@ function Goals({
     if (!confirmed) return;
 
     try {
-      await api.delete(`/api/goals/${id}`);
+      await api.delete(`/goals/${id}`);
 
       if (editingId === id) {
         resetForm();
@@ -178,7 +178,7 @@ function Goals({
     }
 
     try {
-      await api.put(`/api/goals/${id}/contribute`, {
+      await api.put(`/goals/${id}/contribute`, {
         amount,
       });
 

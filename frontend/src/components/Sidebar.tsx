@@ -7,6 +7,7 @@ import {
   Target,
   ChartNoAxesCombined,
   Sparkles,
+  Upload,
 } from "lucide-react";
 
 type SidebarProps = {
@@ -20,8 +21,10 @@ const menuItems = [
   { name: "Budgets", icon: WalletCards },
   { name: "Investments", icon: TrendingUp },
   { name: "Goals", icon: Target },
+  { name: "Import Statement", icon: Upload },
   { name: "Reports", icon: ChartNoAxesCombined },
   { name: "AI Advisor", icon: Sparkles },
+ 
 ];
 
 function Sidebar({

@@ -62,7 +62,7 @@ function AIAdvisor({
       setLoading(true);
       setMessage("");
 
-      const response = await api.get("/api/advisor");
+      const response = await api.get("/advisor");
 
       setData(response.data);
     } catch (error: any) {

@@ -7,6 +7,7 @@ import Investments from "./pages/Investments";
 import Reports from "./pages/Reports";
 import Goals from "./pages/Goals";
 import AIAdvisor from "./pages/AIAdvisor";
+import ImportStatement from "./pages/ImportStatement";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(
@@ -61,6 +62,16 @@ function App() {
 if (activePage === "AI Advisor") {
   return (
     <AIAdvisor
+      onLogout={handleLogout}
+      activePage={activePage}
+      setActivePage={setActivePage}
+    />
+  );
+}
+
+if (activePage === "Import Statement") {
+  return (
+    <ImportStatement
       onLogout={handleLogout}
       activePage={activePage}
       setActivePage={setActivePage}

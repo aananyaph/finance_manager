@@ -92,7 +92,7 @@ function Investments({
 
   const fetchInvestments = async () => {
     try {
-      const response = await api.get("/api/investments");
+      const response = await api.get("/investments");
       setInvestments(response.data);
     } catch (error) {
       console.error(error);
@@ -103,7 +103,7 @@ function Investments({
   const fetchSummary = async () => {
     try {
       const response = await api.get(
-        "/api/investments/summary"
+        "/investments/summary"
       );
 
       setSummary(response.data);
@@ -149,13 +149,13 @@ function Investments({
     try {
       if (editingId) {
         await api.put(
-          `/api/investments/${editingId}`,
+          `/investments/${editingId}`,
           investmentData
         );
 
         setMessage("Investment updated successfully!");
       } else {
-        await api.post("/api/investments", investmentData);
+        await api.post("/investments", investmentData);
 
         setMessage("Investment added successfully!");
       }
@@ -207,7 +207,7 @@ function Investments({
     if (!confirmed) return;
 
     try {
-      await api.delete(`/api/investments/${id}`);
+      await api.delete(`/investments/${id}`);
 
       if (editingId === id) {
         resetForm();
@@ -226,7 +226,7 @@ function Investments({
       setRefreshingId(id);
       setMessage("Fetching live market price...");
 
-      await api.put(`/api/investments/${id}/refresh-price`);
+      await api.put(`/investments/${id}/refresh-price`);
 
       await refreshPortfolio();
 

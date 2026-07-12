@@ -84,7 +84,7 @@ function Budgets({
   const fetchBudgets = async () => {
     try {
       const response = await api.get(
-        `/api/budgets?month=${month}&year=${year}`
+        `/budgets?month=${month}&year=${year}`
       );
 
       setBudgets(response.data);
@@ -119,13 +119,13 @@ function Budgets({
     try {
       if (editingId) {
         await api.put(
-          `/api/budgets/${editingId}`,
+          `/budgets/${editingId}`,
           budgetData
         );
 
         setMessage("Budget updated successfully!");
       } else {
-        await api.post("/api/budgets", budgetData);
+        await api.post("/budgets", budgetData);
         setMessage("Budget created successfully!");
       }
 
@@ -168,7 +168,7 @@ function Budgets({
     if (!confirmed) return;
 
     try {
-      await api.delete(`/api/budgets/${id}`);
+      await api.delete(`/budgets/${id}`);
 
       if (editingId === id) {
         resetForm();

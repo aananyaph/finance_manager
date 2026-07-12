@@ -67,7 +67,7 @@ function Transactions({
 
   const fetchTransactions = async () => {
     try {
-      const response = await api.get("/api/transactions");
+      const response = await api.get("/transactions");
       setTransactions(response.data);
     } catch (error) {
       console.error(error);
@@ -104,14 +104,14 @@ function Transactions({
     try {
       if (editingId) {
         await api.put(
-          `/api/transactions/${editingId}`,
+          `/transactions/${editingId}`,
           transactionData
         );
 
         setMessage("Transaction updated successfully!");
       } else {
         await api.post(
-          "/api/transactions",
+          "/transactions",
           transactionData
         );
 
@@ -159,7 +159,7 @@ function Transactions({
     if (!confirmed) return;
 
     try {
-      await api.delete(`/api/transactions/${id}`);
+      await api.delete(`/transactions/${id}`);
 
       if (editingId === id) {
         resetForm();
