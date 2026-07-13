@@ -213,11 +213,14 @@ const sidebarStyle = {
   flexDirection: "column" as const,
   justifyContent: "space-between",
   boxSizing: "border-box" as const,
-  position: "sticky" as const,
+  position: "sticky",
   top: 0,
+  left: 0,
   height: "100vh",
+  zIndex: 1000,
   flexShrink: 0,
-  overflow: "hidden",
+  overflowY: "auto" as const,
+overflowX: "hidden" as const,
   transition: "width 0.25s ease, min-width 0.25s ease",
   boxShadow: "8px 0 30px rgba(15, 23, 42, 0.08)",
 };
@@ -302,6 +305,7 @@ const menuContentStyle = {
 };
 
 const bottomCardStyle = {
+  marginTop: "auto",
   display: "flex",
   alignItems: "center",
   gap: "11px",
@@ -343,7 +347,8 @@ const mobileSidebarStyle = {
   color: "#ffffff",
   padding: "12px",
   boxSizing: "border-box" as const,
-  overflow: "hidden",
+  overflowY: "auto" as const,
+  overflowX: "hidden" as const,
 };
 
 const mobileBrandStyle = {

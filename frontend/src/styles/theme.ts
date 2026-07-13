@@ -48,19 +48,15 @@ export const layoutStyles = {
   page: {
     display: "flex",
     minHeight: "100vh",
-    width: "100%",
-    maxWidth: "100vw",
-    overflowX: "hidden" as const,
     background: theme.colors.background,
-    boxSizing: "border-box" as const,
+    overflowX: "hidden" as const,
   },
 
   main: {
     flex: 1,
-    width: "100%",
     minWidth: 0,
-    maxWidth: "100%",
-    padding: "clamp(18px, 3vw, 36px)",
+    padding: "32px",
+    marginLeft: "0px", // Sidebar is already part of the flex layout
     overflowX: "hidden" as const,
     boxSizing: "border-box" as const,
   },
@@ -69,24 +65,22 @@ export const layoutStyles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    gap: "16px",
-    marginBottom: "clamp(20px, 3vw, 30px)",
+    gap: "20px",
+    marginBottom: "28px",
     flexWrap: "wrap" as const,
   },
 
   pageTitle: {
     margin: 0,
     color: theme.colors.text,
-    fontSize: "clamp(23px, 3vw, 28px)",
+    fontSize: "28px",
     fontWeight: 750,
-    letterSpacing: "-0.7px",
   },
 
   pageSubtitle: {
-    margin: "7px 0 0",
+    margin: "6px 0 0",
     color: theme.colors.textSecondary,
-    fontSize: "clamp(12px, 1.5vw, 14px)",
-    lineHeight: 1.5,
+    fontSize: "14px",
   },
 };
 export const cardStyles = {

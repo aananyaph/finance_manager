@@ -7,7 +7,6 @@ import {
   ReceiptText,
   Trash2,
 } from "lucide-react";
-
 import api from "../services/api";
 import Sidebar from "../components/Sidebar";
 import StatCard from "../components/StatCard";
