@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -37,9 +38,24 @@ function StatCard({
     : isExpense
       ? ArrowDownRight
       : Wallet;
-
+const [hovered, setHovered] = useState(false);
   return (
-    <div style={cardStyle}>
+    <div
+  onMouseEnter={() => setHovered(true)}
+  onMouseLeave={() => setHovered(false)}
+  style={{
+    ...cardStyle,
+    transform: hovered
+      ? "translateY(-6px)"
+      : "translateY(0)",
+    boxShadow: hovered
+      ? "0 18px 40px rgba(15,23,42,0.14)"
+      : theme.shadow.small,
+    borderColor: hovered
+      ? accentColor
+      : theme.colors.borderLight,
+  }}
+>
       <div style={topRowStyle}>
         <div
           style={{
@@ -102,6 +118,11 @@ const cardStyle = {
   border: `1px solid ${theme.colors.borderLight}`,
   borderRadius: theme.radius.large,
   boxShadow: theme.shadow.small,
+
+  transition:
+    "transform .25s ease, box-shadow .25s ease, border-color .25s ease",
+
+  cursor: "pointer",
 };
 
 const topRowStyle = {

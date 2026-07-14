@@ -11,7 +11,8 @@ import api from "../services/api";
 import Sidebar from "../components/Sidebar";
 import StatCard from "../components/StatCard";
 import FinanceChart from "../components/FinanceChart";
-
+import toast from "react-hot-toast";
+import EmptyState from "../components/EmptyState";
 import {
   buttonStyles,
   cardStyles,
@@ -55,7 +56,10 @@ function Dashboard({
   const [description, setDescription] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("UPI");
   const [message, setMessage] = useState("");
-
+  const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(
+    null
+  );
   const [editingId, setEditingId] = useState<string | null>(
     null
   );
@@ -89,48 +93,45 @@ function Dashboard({
     setPaymentMethod("UPI");
   };
 
-  const handleSubmit = async (
-    e: React.FormEvent<HTMLFormElement>
-  ) => {
-    e.preventDefault();
+const handleSubmit = async (
+  e: React.FormEvent<HTMLFormElement>
+) => {
+  e.preventDefault();
 
-    const transactionData = {
-      type,
-      amount: Number(amount),
-      category,
-      description,
-      paymentMethod,
-    };
+  setLoading(true);
 
-    try {
-      if (editingId) {
-        await api.put(
-          `/transactions/${editingId}`,
-          transactionData
-        );
-
-        setMessage("Transaction updated successfully!");
-      } else {
-        await api.post(
-          "/transactions",
-          transactionData
-        );
-
-        setMessage("Transaction added successfully!");
-      }
-
-      resetForm();
-      await fetchTransactions();
-    } catch (error) {
-      console.error(error);
-
-      setMessage(
-        editingId
-          ? "Could not update transaction"
-          : "Could not add transaction"
-      );
-    }
+  const transactionData = {
+    type,
+    amount: Number(amount),
+    category,
+    description,
+    paymentMethod,
   };
+
+  try {
+    if (editingId) {
+      await api.put(
+        `/transactions/${editingId}`,
+        transactionData
+      );
+      setMessage("Transaction updated successfully!");
+    } else {
+      await api.post(
+        "/transactions",
+        transactionData
+      );
+      setMessage("Transaction added successfully!");
+    }
+
+    resetForm();
+    await fetchTransactions();
+  } catch (error) {
+    console.error(error);
+    setMessage("Could not save transaction");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleEdit = (transaction: Transaction) => {
     setEditingId(transaction._id);
@@ -159,6 +160,8 @@ function Dashboard({
 
     if (!confirmed) return;
 
+    setDeletingId(id);
+
     try {
       await api.delete(`/transactions/${id}`);
 
@@ -171,6 +174,8 @@ function Dashboard({
     } catch (error) {
       console.error(error);
       setMessage("Could not delete transaction");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -336,6 +341,7 @@ const totalExpense = transactions
                 <span style={currencySymbolStyle}>₹</span>
 
                 <input
+                  disabled={loading}
                   type="number"
                   min="1"
                   value={amount}
@@ -355,6 +361,7 @@ const totalExpense = transactions
                   </label>
 
                   <input
+                    disabled={loading}
                     type="text"
                     value={category}
                     onChange={(e) =>
@@ -372,6 +379,7 @@ const totalExpense = transactions
                   </label>
 
                   <select
+                    disabled={loading}
                     value={paymentMethod}
                     onChange={(e) =>
                       setPaymentMethod(e.target.value)
@@ -394,6 +402,7 @@ const totalExpense = transactions
               </label>
 
               <input
+                disabled={loading}
                 type="text"
                 value={description}
                 onChange={(e) =>
@@ -405,6 +414,7 @@ const totalExpense = transactions
 
               <button
                 type="submit"
+                disabled={loading}
                 style={{
                   ...buttonStyles.primary,
                   width: "100%",
@@ -412,13 +422,19 @@ const totalExpense = transactions
                   alignItems: "center",
                   justifyContent: "center",
                   gap: "8px",
+                  opacity: loading ? 0.7 : 1,
+                  cursor: loading ? "not-allowed" : "pointer",
                 }}
               >
-                {editingId
+                {loading
+                  ? editingId
+                    ? "Updating..."
+                    : "Adding..."
+                  : editingId
                   ? "Update Transaction"
                   : "Add Transaction"}
 
-                <ArrowRight size={17} />
+                {!loading && <ArrowRight size={17} />}
               </button>
 
               {editingId && (
@@ -437,7 +453,12 @@ const totalExpense = transactions
             </form>
 
             {message && (
-              <div style={messageStyle}>
+              <div
+                style={{
+                  ...messageStyle,
+                  animation: "fadeIn 0.3s ease",
+                }}
+              >
                 {message}
               </div>
             )}
@@ -478,129 +499,146 @@ const totalExpense = transactions
             </button>
           </div>
 
-          {recentTransactions.length === 0 ? (
-            <div style={emptyStateStyle}>
-              <div style={emptyIconStyle}>
-                <ReceiptText size={25} />
-              </div>
+         {recentTransactions.length === 0 ? (
+  <EmptyState
+    icon={<ReceiptText size={34} />}
+    title="No Transactions Yet"
+    description="Start by adding your first transaction or import a bank statement."
+    buttonText="Add Transaction"
+    onClick={() =>
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      })
+    }
+  />
+) : (
+  <div>
+    {recentTransactions.map((transaction, index) => (
+      <div
+        key={transaction._id}
+        style={{
+          ...transactionRowStyle,
+          borderBottom:
+            index === recentTransactions.length - 1
+              ? "none"
+              : `1px solid ${theme.colors.borderLight}`,
+        }}
+      >
+        <div style={transactionMainStyle}>
+          <div
+            style={{
+              ...transactionIconStyle,
+              background:
+                transaction.type === "income"
+                  ? theme.colors.successSoft
+                  : theme.colors.dangerSoft,
+              color:
+                transaction.type === "income"
+                  ? theme.colors.success
+                  : theme.colors.danger,
+            }}
+          >
+            <CreditCard size={19} />
+          </div>
 
-              <h3 style={emptyTitleStyle}>
-                No transactions yet
-              </h3>
+          <div>
+            <div style={transactionTitleRowStyle}>
+              <strong style={transactionTitleStyle}>
+                {transaction.category}
+              </strong>
 
-              <p style={emptyTextStyle}>
-                Add your first transaction to start tracking
-                your finances.
-              </p>
+              <span style={paymentBadgeStyle}>
+                {transaction.paymentMethod}
+              </span>
             </div>
-          ) : (
-            <div>
-              {recentTransactions.map(
-                (transaction, index) => (
-                  <div
-                    key={transaction._id}
-                    style={{
-                      ...transactionRowStyle,
-                      borderBottom:
-                        index ===
-                        recentTransactions.length - 1
-                          ? "none"
-                          : `1px solid ${theme.colors.borderLight}`,
-                    }}
-                  >
-                    <div style={transactionMainStyle}>
-                      <div
-                        style={{
-                          ...transactionIconStyle,
-                          background:
-                            transaction.type === "income"
-                              ? theme.colors.successSoft
-                              : theme.colors.dangerSoft,
-                          color:
-                            transaction.type === "income"
-                              ? theme.colors.success
-                              : theme.colors.danger,
-                        }}
-                      >
-                        <CreditCard size={19} />
-                      </div>
 
-                      <div>
-                        <div style={transactionTitleRowStyle}>
-                          <strong style={transactionTitleStyle}>
-                            {transaction.category}
-                          </strong>
+            <p style={transactionDescriptionStyle}>
+              {transaction.description ||
+                "No description"}
+            </p>
 
-                          <span style={paymentBadgeStyle}>
-                            {transaction.paymentMethod}
-                          </span>
-                        </div>
+            <span style={transactionDateStyle}>
+              {formatDate(transaction.date)}
+            </span>
+          </div>
+        </div>
 
-                        <p style={transactionDescriptionStyle}>
-                          {transaction.description ||
-                            "No description"}
-                        </p>
+        <div style={transactionRightStyle}>
+          <strong
+            style={{
+              ...transactionAmountStyle,
+              color:
+                transaction.type === "income"
+                  ? theme.colors.success
+                  : theme.colors.danger,
+            }}
+          >
+            {transaction.type === "income"
+              ? "+"
+              : "-"}
+            ₹
+            {transaction.amount.toLocaleString(
+              "en-IN"
+            )}
+          </strong>
 
-                        <span style={transactionDateStyle}>
-                          {formatDate(transaction.date)}
-                        </span>
-                      </div>
-                    </div>
+          <div style={rowActionsStyle}>
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() =>
+                handleEdit(transaction)
+              }
+              title="Edit transaction"
+              style={{
+                ...iconButtonStyle,
+                opacity: loading ? 0.6 : 1,
+                cursor: loading
+                  ? "not-allowed"
+                  : "pointer",
+              }}
+            >
+              <Pencil size={16} />
+            </button>
 
-                    <div style={transactionRightStyle}>
-                      <strong
-                        style={{
-                          ...transactionAmountStyle,
-                          color:
-                            transaction.type === "income"
-                              ? theme.colors.success
-                              : theme.colors.danger,
-                        }}
-                      >
-                        {transaction.type === "income"
-                          ? "+"
-                          : "-"}
-                        ₹
-                        {transaction.amount.toLocaleString(
-                          "en-IN"
-                        )}
-                      </strong>
-
-                      <div style={rowActionsStyle}>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleEdit(transaction)
-                          }
-                          title="Edit transaction"
-                          style={iconButtonStyle}
-                        >
-                          <Pencil size={16} />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleDelete(transaction._id)
-                          }
-                          title="Delete transaction"
-                          style={{
-                            ...iconButtonStyle,
-                            color: theme.colors.danger,
-                            background:
-                              theme.colors.dangerSoft,
-                          }}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )
+            <button
+              type="button"
+              disabled={
+                deletingId === transaction._id
+              }
+              onClick={() =>
+                handleDelete(transaction._id)
+              }
+              title="Delete transaction"
+              style={{
+                ...iconButtonStyle,
+                color: theme.colors.danger,
+                background:
+                  theme.colors.dangerSoft,
+                opacity:
+                  deletingId === transaction._id
+                    ? 0.6
+                    : 1,
+                cursor:
+                  deletingId === transaction._id
+                    ? "not-allowed"
+                    : "pointer",
+              }}
+            >
+              {deletingId === transaction._id ? (
+                "..."
+              ) : (
+                <Trash2 size={16} />
               )}
-            </div>
-          )}
-        </section>
+            </button>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+)}
+</section>
       </main>
     </div>
   );
