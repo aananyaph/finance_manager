@@ -11,8 +11,8 @@ import api from "../services/api";
 import Sidebar from "../components/Sidebar";
 import StatCard from "../components/StatCard";
 import FinanceChart from "../components/FinanceChart";
-import toast from "react-hot-toast";
 import EmptyState from "../components/EmptyState";
+
 import {
   buttonStyles,
   cardStyles,
@@ -46,17 +46,17 @@ function Dashboard({
   const [transactions, setTransactions] = useState<Transaction[]>(
     []
   );
-
   const [type, setType] = useState<"income" | "expense">(
     "expense"
   );
-
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("UPI");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [search, setSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(
     null
   );
@@ -200,7 +200,36 @@ const totalExpense = transactions
   );
   const balance = totalIncome - totalExpense;
 
-  const recentTransactions = transactions.slice(0, 5);
+const categories = [
+  "All",
+  ...new Set(
+    transactions.map((t) => t.category)
+  ),
+];
+const filteredTransactions = transactions.filter(
+  (transaction) => {
+    const query = search.toLowerCase();
+
+    const matchesSearch =
+      (transaction.description || "")
+        .toLowerCase()
+        .includes(query) ||
+      (transaction.category || "")
+        .toLowerCase()
+        .includes(query);
+
+    const matchesCategory =
+      selectedCategory === "All" ||
+      transaction.category === selectedCategory;
+
+    return (
+      matchesSearch &&
+      matchesCategory
+    );
+  }
+);
+
+const recentTransactions = filteredTransactions.slice(0, 5);
 
   return (
     <div style={layoutStyles.page}>
@@ -497,6 +526,68 @@ const totalExpense = transactions
               View all
               <ArrowRight size={16} />
             </button>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "15px",
+              marginBottom: "22px",
+              flexWrap: "wrap",
+            }}
+          >
+            <input
+              type="text"
+              placeholder="🔍 Search by description or category..."
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+              style={{
+                flex: 1,
+                minWidth: "260px",
+                padding: "12px 16px",
+                borderRadius: "12px",
+                border: `1px solid ${theme.colors.border}`,
+                outline: "none",
+                fontSize: "14px",
+              }}
+            />
+
+            <select
+              value={selectedCategory}
+              onChange={(e) =>
+                setSelectedCategory(e.target.value)
+              }
+              style={{
+                padding: "12px 14px",
+                borderRadius: "12px",
+                border: `1px solid ${theme.colors.border}`,
+                background: "#fff",
+                cursor: "pointer",
+                minWidth: "180px",
+              }}
+            >
+              {categories.map((category) => (
+                <option
+                  key={category}
+                  value={category}
+                >
+                  {category}
+                </option>
+              ))}
+            </select>
+
+            <span
+              style={{
+                color: theme.colors.textMuted,
+                fontSize: "13px",
+                fontWeight: 600,
+              }}
+            >
+              {filteredTransactions.length} Results
+            </span>
           </div>
 
          {recentTransactions.length === 0 ? (
@@ -901,34 +992,6 @@ const iconButtonStyle = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-};
-
-const emptyStateStyle = {
-  padding: "50px 20px",
-  textAlign: "center" as const,
-};
-
-const emptyIconStyle = {
-  width: "52px",
-  height: "52px",
-  margin: "0 auto 14px",
-  borderRadius: "15px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: theme.colors.primarySoft,
-  color: theme.colors.primary,
-};
-
-const emptyTitleStyle = {
-  margin: "0 0 7px",
-  color: theme.colors.text,
-};
-
-const emptyTextStyle = {
-  margin: 0,
-  color: theme.colors.textMuted,
-  fontSize: "13px",
 };
 
 export default Dashboard;

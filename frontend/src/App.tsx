@@ -101,13 +101,25 @@ if (activePage === "Import Statement") {
     );
   }
 
-  return (
+ return (
+  <>
+    {/* <Toaster
+      position="top-right"
+      toastOptions={{
+        duration: 2500,
+        style: {
+          borderRadius: "12px",
+        },
+      }}
+    /> */}
+
     <Dashboard
       onLogout={handleLogout}
       activePage={activePage}
       setActivePage={setActivePage}
     />
-  );
+  </>
+);
 }
 
 export default App;
