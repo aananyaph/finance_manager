@@ -2,9 +2,12 @@ import { useEffect, useState } from "react";
 import {
   ArrowRight,
   CreditCard,
+  DollarSign,
+  Folder,
   Pencil,
   Plus,
   ReceiptText,
+  Search,
   Trash2,
 } from "lucide-react";
 import api from "../services/api";
@@ -56,10 +59,15 @@ function Dashboard({
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedType, setSelectedType] = useState("All");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("All");
+  const [sortBy, setSortBy] = useState("Newest");
+  const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(
     null
   );
+  const transactionsPerPage = 10;
   const [editingId, setEditingId] = useState<string | null>(
     null
   );
@@ -83,6 +91,16 @@ function Dashboard({
   useEffect(() => {
     fetchTransactions();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    search,
+    selectedCategory,
+    selectedType,
+    selectedPaymentMethod,
+    sortBy,
+  ]);
 
   const resetForm = () => {
     setEditingId(null);
@@ -206,6 +224,12 @@ const categories = [
     transactions.map((t) => t.category)
   ),
 ];
+const paymentMethods = [
+  "All",
+  ...new Set(
+    transactions.map((t) => t.paymentMethod)
+  ),
+];
 const filteredTransactions = transactions.filter(
   (transaction) => {
     const query = search.toLowerCase();
@@ -222,14 +246,71 @@ const filteredTransactions = transactions.filter(
       selectedCategory === "All" ||
       transaction.category === selectedCategory;
 
+    const matchesType =
+      selectedType === "All" ||
+      transaction.type === selectedType.toLowerCase();
+
+    const matchesPayment =
+      selectedPaymentMethod === "All" ||
+      transaction.paymentMethod === selectedPaymentMethod;
+
     return (
       matchesSearch &&
-      matchesCategory
+      matchesCategory &&
+      matchesType &&
+      matchesPayment
     );
   }
 );
 
-const recentTransactions = filteredTransactions.slice(0, 5);
+const sortedTransactions = [...filteredTransactions].sort(
+  (a, b) => {
+    switch (sortBy) {
+      case "Newest":
+        return (
+          new Date(b.date).getTime() -
+          new Date(a.date).getTime()
+        );
+
+      case "Oldest":
+        return (
+          new Date(a.date).getTime() -
+          new Date(b.date).getTime()
+        );
+
+      case "Highest Amount":
+        return b.amount - a.amount;
+
+      case "Lowest Amount":
+        return a.amount - b.amount;
+
+      case "Category A-Z":
+        return a.category.localeCompare(b.category);
+
+      case "Category Z-A":
+        return b.category.localeCompare(a.category);
+
+      default:
+        return 0;
+    }
+  }
+);
+
+const totalPages = Math.ceil(
+  sortedTransactions.length / transactionsPerPage
+);
+
+const indexOfLast =
+  currentPage * transactionsPerPage;
+
+const indexOfFirst =
+  indexOfLast - transactionsPerPage;
+
+const currentTransactions =
+  sortedTransactions.slice(
+    indexOfFirst,
+    indexOfLast
+  );
 
   return (
     <div style={layoutStyles.page}>
@@ -537,46 +618,160 @@ const recentTransactions = filteredTransactions.slice(0, 5);
               flexWrap: "wrap",
             }}
           >
-            <input
-              type="text"
-              placeholder="🔍 Search by description or category..."
-              value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
+            <div
               style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
                 flex: 1,
                 minWidth: "260px",
                 padding: "12px 16px",
                 borderRadius: "12px",
                 border: `1px solid ${theme.colors.border}`,
-                outline: "none",
-                fontSize: "14px",
+                background: "#fff",
               }}
-            />
+            >
+              <Search size={16} />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={search}
+                onChange={(e) =>
+                  setSearch(e.target.value)
+                }
+                style={{
+                  border: "none",
+                  outline: "none",
+                  width: "100%",
+                  fontSize: "14px",
+                }}
+              />
+            </div>
 
-            <select
-              value={selectedCategory}
-              onChange={(e) =>
-                setSelectedCategory(e.target.value)
-              }
+            <div
               style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
                 padding: "12px 14px",
                 borderRadius: "12px",
                 border: `1px solid ${theme.colors.border}`,
                 background: "#fff",
-                cursor: "pointer",
                 minWidth: "180px",
               }}
             >
-              {categories.map((category) => (
-                <option
-                  key={category}
-                  value={category}
-                >
-                  {category}
-                </option>
-              ))}
+              <Folder size={16} />
+              <select
+                value={selectedCategory}
+                onChange={(e) =>
+                  setSelectedCategory(e.target.value)
+                }
+                style={{
+                  border: "none",
+                  outline: "none",
+                  width: "100%",
+                  background: "transparent",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}
+              >
+                {categories.map((category) => (
+                  <option
+                    key={category}
+                    value={category}
+                  >
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                padding: "12px 14px",
+                borderRadius: "12px",
+                border: `1px solid ${theme.colors.border}`,
+                background: "#fff",
+                minWidth: "150px",
+              }}
+            >
+              <DollarSign size={16} />
+              <select
+                value={selectedType}
+                onChange={(e) =>
+                  setSelectedType(e.target.value)
+                }
+                style={{
+                  border: "none",
+                  outline: "none",
+                  width: "100%",
+                  background: "transparent",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}
+              >
+                <option value="All">All Types</option>
+                <option value="Income">Income</option>
+                <option value="Expense">Expense</option>
+              </select>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                padding: "12px 14px",
+                borderRadius: "12px",
+                border: `1px solid ${theme.colors.border}`,
+                background: "#fff",
+                minWidth: "180px",
+              }}
+            >
+              <CreditCard size={16} />
+              <select
+                value={selectedPaymentMethod}
+                onChange={(e) =>
+                  setSelectedPaymentMethod(e.target.value)
+                }
+                style={{
+                  border: "none",
+                  outline: "none",
+                  width: "100%",
+                  background: "transparent",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}
+              >
+                {paymentMethods.map((method) => (
+                  <option key={method} value={method}>
+                    {method}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              style={{
+                padding: "12px",
+                borderRadius: "10px",
+                border: `1px solid ${theme.colors.border}`,
+                minWidth: "180px",
+                background: "#fff",
+                cursor: "pointer",
+              }}
+            >
+              <option>Newest</option>
+              <option>Oldest</option>
+              <option>Highest Amount</option>
+              <option>Lowest Amount</option>
+              <option>Category A-Z</option>
+              <option>Category Z-A</option>
             </select>
 
             <span
@@ -586,11 +781,11 @@ const recentTransactions = filteredTransactions.slice(0, 5);
                 fontWeight: 600,
               }}
             >
-              {filteredTransactions.length} Results
+              {sortedTransactions.length} Results
             </span>
           </div>
 
-         {recentTransactions.length === 0 ? (
+         {currentTransactions.length === 0 ? (
   <EmptyState
     icon={<ReceiptText size={34} />}
     title="No Transactions Yet"
@@ -605,13 +800,13 @@ const recentTransactions = filteredTransactions.slice(0, 5);
   />
 ) : (
   <div>
-    {recentTransactions.map((transaction, index) => (
+    {currentTransactions.map((transaction, index) => (
       <div
         key={transaction._id}
         style={{
           ...transactionRowStyle,
           borderBottom:
-            index === recentTransactions.length - 1
+            index === currentTransactions.length - 1
               ? "none"
               : `1px solid ${theme.colors.borderLight}`,
         }}
