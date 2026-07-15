@@ -100,9 +100,8 @@ function Sidebar({
     <aside
       style={{
         ...sidebarStyle,
-        position: "fixed",
+        position: "sticky",
         top: 0,
-        left: 0,
         width: isCompact ? "78px" : "250px",
         minWidth: isCompact ? "78px" : "250px",
         padding: isCompact

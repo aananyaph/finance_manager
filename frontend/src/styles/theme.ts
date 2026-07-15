@@ -47,6 +47,8 @@ export const theme = {
 export const layoutStyles = {
   page: {
     display: "flex",
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
     minHeight: "100vh",
     background: theme.colors.background,
     overflowX: "hidden" as const,
@@ -54,26 +56,10 @@ export const layoutStyles = {
 
   main: {
     flex: 1,
-    minWidth: 0,
-    padding: "32px",
-    marginLeft:
-      typeof window !== "undefined"
-        ? window.innerWidth > 1100
-          ? "250px"
-          : window.innerWidth > 650
-          ? "78px"
-          : "0px"
-        : "250px",
-    width:
-      typeof window !== "undefined"
-        ? window.innerWidth > 1100
-          ? "calc(100% - 250px)"
-          : window.innerWidth > 650
-          ? "calc(100% - 78px)"
-          : "100%"
-        : "calc(100% - 250px)",
-    overflowX: "hidden" as const,
+    minWidth: "320px",
+    padding: "24px",
     boxSizing: "border-box" as const,
+    overflowX: "hidden" as const,
   },
 
   pageHeader: {
