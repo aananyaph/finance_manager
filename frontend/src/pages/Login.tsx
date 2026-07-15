@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Mail, Lock, ArrowRight, Eye, EyeOff, Sparkles, TrendingUp, ShieldCheck } from "lucide-react";
 import api from "../services/api";
 import { theme } from "../styles/theme";
@@ -215,9 +215,6 @@ const visualSectionStyle: React.CSSProperties = {
   padding: "48px",
   color: "#ffffff",
   boxSizing: "border-box",
-  "@media (max-width: 1024px)": {
-    display: "none"
-  } as any
 };
 
 const glowOverlayStyle: React.CSSProperties = {
