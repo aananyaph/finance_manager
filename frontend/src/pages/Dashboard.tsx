@@ -81,7 +81,7 @@ function Dashboard({
   const fetchTransactions = async () => {
     try {
       const response = await api.get("/transactions");
-      setTransactions(response.data);
+      setTransactions(response.data.transactions || []);
     } catch (error) {
       console.error(error);
       setMessage("Could not load transactions");
