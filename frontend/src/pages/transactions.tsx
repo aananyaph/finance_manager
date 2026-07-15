@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -8,7 +8,6 @@ import {
   ReceiptText,
   Search,
   Trash2,
-  WalletCards,
   X,
 } from "lucide-react";
 
@@ -40,14 +39,14 @@ type TransactionsProps = {
   setActivePage: (page: string) => void;
 };
 
-type FilterType = "all" | "income" | "expense";
-
 function Transactions({
   onLogout,
   activePage,
   setActivePage,
 }: TransactionsProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalTransactions, setTotalTransactions] = useState(0);
 
   const [type, setType] =
     useState<"income" | "expense">("expense");
@@ -62,22 +61,56 @@ function Transactions({
 
   const [message, setMessage] = useState("");
   const [search, setSearch] = useState("");
-  const [filter, setFilter] =
-    useState<FilterType>("all");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedType, setSelectedType] = useState<
+    "All" | "income" | "expense"
+  >("All");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] =
+    useState("All");
+  const [sortBy, setSortBy] = useState("newest");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     try {
-      const response = await api.get("/transactions");
-      setTransactions(response.data);
+      const response = await api.get("/transactions", {
+        params: {
+          search,
+          category: selectedCategory,
+          type: selectedType,
+          payment: selectedPaymentMethod,
+          sort: sortBy,
+          page: currentPage,
+          limit: 10,
+        },
+      });
+
+      const {
+        transactions: fetchedTransactions,
+        currentPage: serverCurrentPage,
+        totalPages: serverTotalPages,
+        totalTransactions: serverTotalTransactions,
+      } = response.data;
+
+      setTransactions(fetchedTransactions || []);
+      setCurrentPage(serverCurrentPage || currentPage);
+      setTotalPages(serverTotalPages || 1);
+      setTotalTransactions(serverTotalTransactions || 0);
     } catch (error) {
       console.error(error);
       setMessage("Could not load transactions");
     }
-  };
+  }, [
+    search,
+    selectedCategory,
+    selectedType,
+    selectedPaymentMethod,
+    sortBy,
+    currentPage,
+  ]);
 
   useEffect(() => {
     fetchTransactions();
-  }, []);
+  }, [fetchTransactions]);
 
   const resetForm = () => {
     setEditingId(null);
@@ -118,6 +151,7 @@ function Transactions({
         setMessage("Transaction added successfully!");
       }
 
+      setCurrentPage(1);
       resetForm();
       await fetchTransactions();
     } catch (error) {
@@ -186,29 +220,6 @@ function Transactions({
   const totalExpense = transactions
     .filter((item) => item.type === "expense")
     .reduce((total, item) => total + item.amount, 0);
-
-  const filteredTransactions = useMemo(() => {
-    const searchText = search.trim().toLowerCase();
-
-    return transactions.filter((transaction) => {
-      const matchesFilter =
-        filter === "all" || transaction.type === filter;
-
-      const matchesSearch =
-        !searchText ||
-        transaction.category
-          .toLowerCase()
-          .includes(searchText) ||
-        transaction.description
-          ?.toLowerCase()
-          .includes(searchText) ||
-        transaction.paymentMethod
-          .toLowerCase()
-          .includes(searchText);
-
-      return matchesFilter && matchesSearch;
-    });
-  }, [transactions, search, filter]);
 
   return (
     <div style={layoutStyles.page}>
@@ -450,10 +461,8 @@ function Transactions({
                 </h2>
 
                 <p style={descriptionStyle}>
-                  {filteredTransactions.length} result
-                  {filteredTransactions.length === 1
-                    ? ""
-                    : "s"}
+                  {totalTransactions} result
+                  {totalTransactions === 1 ? "" : "s"}
                 </p>
               </div>
             </div>
@@ -467,9 +476,10 @@ function Transactions({
 
                 <input
                   value={search}
-                  onChange={(e) =>
-                    setSearch(e.target.value)
-                  }
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   placeholder="Search transactions..."
                   style={searchInputStyle}
                 />
@@ -478,18 +488,21 @@ function Transactions({
               <div style={filterGroupStyle}>
                 {(
                   [
-                    ["all", "All"],
+                    ["All", "All"],
                     ["income", "Income"],
                     ["expense", "Expenses"],
-                  ] as [FilterType, string][]
+                  ] as ["All" | "income" | "expense", string][]
                 ).map(([value, label]) => (
                   <button
                     key={value}
                     type="button"
-                    onClick={() => setFilter(value)}
+                    onClick={() => {
+                      setSelectedType(value);
+                      setCurrentPage(1);
+                    }}
                     style={{
                       ...filterButtonStyle,
-                      ...(filter === value
+                      ...(selectedType === value
                         ? activeFilterStyle
                         : {}),
                     }}
@@ -498,9 +511,56 @@ function Transactions({
                   </button>
                 ))}
               </div>
+
+              <select
+                value={selectedCategory}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value);
+                  setCurrentPage(1);
+                }}
+                style={selectStyle}
+              >
+                <option value="All">All Categories</option>
+                <option value="Food">Food</option>
+                <option value="Salary">Salary</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Travel">Travel</option>
+                <option value="Bills">Bills</option>
+              </select>
+
+              <select
+                value={selectedPaymentMethod}
+                onChange={(e) => {
+                  setSelectedPaymentMethod(e.target.value);
+                  setCurrentPage(1);
+                }}
+                style={selectStyle}
+              >
+                <option value="All">All Payments</option>
+                <option value="UPI">UPI</option>
+                <option value="Card">Card</option>
+                <option value="Cash">Cash</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+                <option value="Other">Other</option>
+              </select>
+
+              <select
+                value={sortBy}
+                onChange={(e) => {
+                  setSortBy(e.target.value);
+                  setCurrentPage(1);
+                }}
+                style={selectStyle}
+              >
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="highest">Highest</option>
+                <option value="lowest">Lowest</option>
+                <option value="category">Category</option>
+              </select>
             </div>
 
-            {filteredTransactions.length === 0 ? (
+            {transactions.length === 0 ? (
               <div style={emptyStateStyle}>
                 <div style={emptyIconStyle}>
                   <ReceiptText size={25} />
@@ -516,108 +576,133 @@ function Transactions({
               </div>
             ) : (
               <div>
-                {filteredTransactions.map(
-                  (transaction, index) => (
-                    <div
-                      key={transaction._id}
-                      style={{
-                        ...transactionRowStyle,
-                        borderBottom:
-                          index ===
-                          filteredTransactions.length - 1
-                            ? "none"
-                            : `1px solid ${theme.colors.borderLight}`,
-                      }}
-                    >
-                      <div style={transactionMainStyle}>
-                        <div
-                          style={{
-                            ...transactionIconStyle,
-                            background:
-                              transaction.type === "income"
-                                ? theme.colors.successSoft
-                                : theme.colors.dangerSoft,
-                            color:
-                              transaction.type === "income"
-                                ? theme.colors.success
-                                : theme.colors.danger,
-                          }}
-                        >
-                          {transaction.type === "income" ? (
-                            <ArrowUpRight size={19} />
-                          ) : (
-                            <CreditCard size={19} />
-                          )}
-                        </div>
+                {transactions.map((transaction, index) => (
+                  <div
+                    key={transaction._id}
+                    style={{
+                      ...transactionRowStyle,
+                      borderBottom:
+                        index === transactions.length - 1
+                          ? "none"
+                          : `1px solid ${theme.colors.borderLight}`,
+                    }}
+                  >
+                    <div style={transactionMainStyle}>
+                      <div
+                        style={{
+                          ...transactionIconStyle,
+                          background:
+                            transaction.type === "income"
+                              ? theme.colors.successSoft
+                              : theme.colors.dangerSoft,
+                          color:
+                            transaction.type === "income"
+                              ? theme.colors.success
+                              : theme.colors.danger,
+                        }}
+                      >
+                        {transaction.type === "income" ? (
+                          <ArrowUpRight size={19} />
+                        ) : (
+                          <CreditCard size={19} />
+                        )}
+                      </div>
 
-                        <div>
-                          <div style={titleRowStyle}>
-                            <strong style={transactionTitleStyle}>
-                              {transaction.category}
-                            </strong>
+                      <div>
+                        <div style={titleRowStyle}>
+                          <strong style={transactionTitleStyle}>
+                            {transaction.category}
+                          </strong>
 
-                            <span style={paymentBadgeStyle}>
-                              {transaction.paymentMethod}
-                            </span>
-                          </div>
-
-                          <p style={transactionDescriptionStyle}>
-                            {transaction.description ||
-                              "No description"}
-                          </p>
-
-                          <span style={dateStyle}>
-                            {formatDate(transaction.date)}
+                          <span style={paymentBadgeStyle}>
+                            {transaction.paymentMethod}
                           </span>
                         </div>
-                      </div>
 
-                      <div style={transactionRightStyle}>
-                        <strong
-                          style={{
-                            ...amountStyle,
-                            color:
-                              transaction.type === "income"
-                                ? theme.colors.success
-                                : theme.colors.danger,
-                          }}
-                        >
-                          {transaction.type === "income"
-                            ? "+"
-                            : "-"}
-                          ₹
-                          {transaction.amount.toLocaleString(
-                            "en-IN"
-                          )}
-                        </strong>
+                        <p style={transactionDescriptionStyle}>
+                          {transaction.description || "No description"}
+                        </p>
 
-                        <div style={actionsStyle}>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleEdit(transaction)
-                            }
-                            title="Edit"
-                            style={editButtonStyle}
-                          >
-                            <Pencil size={16} />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleDelete(transaction._id)
-                            }
-                            title="Delete"
-                            style={deleteButtonStyle}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
+                        <span style={dateStyle}>
+                          {formatDate(transaction.date)}
+                        </span>
                       </div>
                     </div>
-                  )
-                )}
+
+                    <div style={transactionRightStyle}>
+                      <strong
+                        style={{
+                          ...amountStyle,
+                          color:
+                            transaction.type === "income"
+                              ? theme.colors.success
+                              : theme.colors.danger,
+                        }}
+                      >
+                        {transaction.type === "income" ? "+" : "-"}₹
+                        {transaction.amount.toLocaleString("en-IN")}
+                      </strong>
+
+                      <div style={actionsStyle}>
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(transaction)}
+                          title="Edit"
+                          style={editButtonStyle}
+                        >
+                          <Pencil size={16} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(transaction._id)}
+                          title="Delete"
+                          style={deleteButtonStyle}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                <div style={paginationStyle}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(1, prev - 1))
+                    }
+                    disabled={currentPage === 1}
+                    style={{
+                      ...paginationButtonStyle,
+                      ...(currentPage === 1
+                        ? paginationButtonDisabledStyle
+                        : {}),
+                    }}
+                  >
+                    Previous
+                  </button>
+
+                  <span style={paginationInfoStyle}>
+                    Page {currentPage} of {totalPages}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                    }
+                    disabled={currentPage === totalPages}
+                    style={{
+                      ...paginationButtonStyle,
+                      ...(currentPage === totalPages
+                        ? paginationButtonDisabledStyle
+                        : {}),
+                    }}
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -672,6 +757,46 @@ function formatDate(date: string) {
     year: "numeric",
   });
 }
+
+const selectStyle = {
+  padding: "10px 12px",
+  border: `1px solid ${theme.colors.borderLight}`,
+  borderRadius: theme.radius.small,
+  background: theme.colors.surface,
+  color: theme.colors.text,
+  fontSize: "13px",
+  minWidth: "125px",
+};
+
+const paginationStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
+  marginTop: "18px",
+  paddingTop: "16px",
+  borderTop: `1px solid ${theme.colors.borderLight}`,
+};
+
+const paginationButtonStyle = {
+  border: `1px solid ${theme.colors.borderLight}`,
+  borderRadius: theme.radius.small,
+  padding: "8px 12px",
+  background: theme.colors.surface,
+  color: theme.colors.text,
+  cursor: "pointer",
+};
+
+const paginationButtonDisabledStyle = {
+  opacity: 0.5,
+  cursor: "not-allowed",
+};
+
+const paginationInfoStyle = {
+  color: theme.colors.textSecondary,
+  fontSize: "13px",
+  fontWeight: 600,
+};
 
 const eyebrowStyle = {
   margin: "0 0 8px",

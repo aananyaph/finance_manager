@@ -296,10 +296,6 @@ const sortedTransactions = [...filteredTransactions].sort(
   }
 );
 
-const totalPages = Math.ceil(
-  sortedTransactions.length / transactionsPerPage
-);
-
 const indexOfLast =
   currentPage * transactionsPerPage;
 
@@ -311,6 +307,27 @@ const currentTransactions =
     indexOfFirst,
     indexOfLast
   );
+
+const totalPages = Math.max(
+  1,
+  Math.ceil(sortedTransactions.length / transactionsPerPage)
+);
+
+const pageNumbers = Array.from(
+  { length: totalPages },
+  (_, i) => i + 1
+);
+
+const handlePageChange = (page: number) => {
+  if (page < 1 || page > totalPages) return;
+  setCurrentPage(page);
+};
+
+useEffect(() => {
+  if (currentPage > totalPages) {
+    setCurrentPage(totalPages);
+  }
+}, [currentPage, totalPages]);
 
   return (
     <div style={layoutStyles.page}>
@@ -922,6 +939,76 @@ const currentTransactions =
         </div>
       </div>
     ))}
+
+    {totalPages > 1 && (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          flexWrap: "wrap",
+          gap: "10px",
+          marginTop: "20px",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          style={{
+            ...buttonStyles.secondary,
+            opacity: currentPage === 1 ? 0.5 : 1,
+            cursor: currentPage === 1 ? "not-allowed" : "pointer",
+          }}
+        >
+          Prev
+        </button>
+
+        {pageNumbers.map((page) => (
+          <button
+            key={page}
+            type="button"
+            onClick={() => handlePageChange(page)}
+            style={{
+              ...buttonStyles.primary,
+              background:
+                page === currentPage
+                  ? theme.colors.primary
+                  : theme.colors.background,
+              color:
+                page === currentPage
+                  ? "#fff"
+                  : theme.colors.text,
+              border:
+                page === currentPage
+                  ? "none"
+                  : `1px solid ${theme.colors.border}`,
+              minWidth: "40px",
+              height: "40px",
+              padding: "0 12px",
+            }}
+          >
+            {page}
+          </button>
+        ))}
+
+        <button
+          type="button"
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          style={{
+            ...buttonStyles.secondary,
+            opacity:
+              currentPage === totalPages ? 0.5 : 1,
+            cursor:
+              currentPage === totalPages
+                ? "not-allowed"
+                : "pointer",
+          }}
+        >
+          Next
+        </button>
+      </div>
+    )}
   </div>
 )}
 </section>

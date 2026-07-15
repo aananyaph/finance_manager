@@ -56,7 +56,22 @@ export const layoutStyles = {
     flex: 1,
     minWidth: 0,
     padding: "32px",
-    marginLeft: "0px", // Sidebar is already part of the flex layout
+    marginLeft:
+      typeof window !== "undefined"
+        ? window.innerWidth > 1100
+          ? "250px"
+          : window.innerWidth > 650
+          ? "78px"
+          : "0px"
+        : "250px",
+    width:
+      typeof window !== "undefined"
+        ? window.innerWidth > 1100
+          ? "calc(100% - 250px)"
+          : window.innerWidth > 650
+          ? "calc(100% - 78px)"
+          : "100%"
+        : "calc(100% - 250px)",
     overflowX: "hidden" as const,
     boxSizing: "border-box" as const,
   },

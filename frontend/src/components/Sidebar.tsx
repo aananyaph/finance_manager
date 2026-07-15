@@ -100,6 +100,9 @@ function Sidebar({
     <aside
       style={{
         ...sidebarStyle,
+        position: "fixed",
+        top: 0,
+        left: 0,
         width: isCompact ? "78px" : "250px",
         minWidth: isCompact ? "78px" : "250px",
         padding: isCompact
@@ -216,11 +219,12 @@ const sidebarStyle = {
   position: "sticky",
   top: 0,
   left: 0,
-  height: "100vh",
+  alignSelf: "flex-start" as const,
+  maxHeight: "100vh",
   zIndex: 1000,
   flexShrink: 0,
   overflowY: "auto" as const,
-overflowX: "hidden" as const,
+  overflowX: "hidden" as const,
   transition: "width 0.25s ease, min-width 0.25s ease",
   boxShadow: "8px 0 30px rgba(15, 23, 42, 0.08)",
 };
@@ -347,6 +351,9 @@ const mobileSidebarStyle = {
   color: "#ffffff",
   padding: "12px",
   boxSizing: "border-box" as const,
+  position: "sticky" as const,
+  top: 0,
+  zIndex: 1000,
   overflowY: "auto" as const,
   overflowX: "hidden" as const,
 };
