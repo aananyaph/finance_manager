@@ -49,14 +49,22 @@ export const loginUser = async (req, res) => {
 
     let user = await User.findOne({ email });
 
-    // Automatically seed the demo user if logging in with the default demo credentials
-    if (!user && email === "ananya@gmail.com" && password === "123456") {
+    // Automatically seed or reset the demo user if logging in with the default demo credentials
+    if (email === "ananya@gmail.com" && password === "123456") {
       const hashedPassword = await bcrypt.hash(password, 10);
-      user = await User.create({
-        fullName: "Ananya Sharma",
-        email: "ananya@gmail.com",
-        password: hashedPassword,
-      });
+      if (!user) {
+        user = await User.create({
+          fullName: "Ananya Sharma",
+          email: "ananya@gmail.com",
+          password: hashedPassword,
+        });
+      } else {
+        const matches = await bcrypt.compare(password, user.password);
+        if (!matches) {
+          user.password = hashedPassword;
+          await user.save();
+        }
+      }
     }
 
     if (user && (await bcrypt.compare(password, user.password))) {
