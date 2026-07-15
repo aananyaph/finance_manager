@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Plus } from "lucide-react";
 import { buttonStyles, theme } from "../styles/theme";
 

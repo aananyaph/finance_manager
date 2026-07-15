@@ -8,9 +8,6 @@ import Reports from "./pages/Reports";
 import Goals from "./pages/Goals";
 import AIAdvisor from "./pages/AIAdvisor";
 import ImportStatement from "./pages/ImportStatement";
-import { Toaster } from "react-hot-toast";
-
-
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(
     Boolean(localStorage.getItem("token"))

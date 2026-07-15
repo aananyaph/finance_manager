@@ -379,19 +379,16 @@ useEffect(() => {
           <StatCard
             title="Current Balance"
             value={balance}
-            icon="💳"
           />
 
           <StatCard
             title="Total Income"
             value={totalIncome}
-            icon="📈"
           />
 
           <StatCard
             title="Total Expenses"
             value={totalExpense}
-            icon="📉"
           />
         </section>
 

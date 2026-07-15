@@ -10,13 +10,11 @@ import { theme } from "../styles/theme";
 type StatCardProps = {
   title: string;
   value: number;
-  icon: string;
 };
 
 function StatCard({
   title,
   value,
-  icon,
 }: StatCardProps) {
   const isIncome = title === "Total Income";
   const isExpense = title === "Total Expenses";
